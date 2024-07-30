@@ -11,6 +11,59 @@ data_path = os.path.join(dirname, 'Dataset')
 logging.basicConfig(level=logging.DEBUG,
                     format='\033[33m[MEANSHARK | %(asctime)s | %(levelname)s] \033[0m %(message)s')
 
+class Statistics:
+    def __init__(self, capture_list):
+        self.capture_list = capture_list
+
+    @property
+    def ip_amount(self):
+        return self.calculate_ip_amount()
+
+    @property
+    def port_amount(self):
+        return self.calculate_port_amount()
+
+    @property
+    def bitrate(self):
+        return self.calculate_bitrate()
+
+    def calculate_ip_amount(self):
+        ip_list = []
+        for data_packet in self.capture_list:
+            if data_packet.ip_src is not None and data_packet.ip_dst is not None:
+                if data_packet.ip_src not in ip_list:
+                    ip_list.append(data_packet.ip_src)
+                if data_packet.ip_dst not in ip_list:
+                    ip_list.append(data_packet.ip_dst)
+        return len(ip_list)
+
+    def calculate_port_amount(self):
+        port_list = []
+        for data_packet in self.capture_list:
+            if data_packet.port_src is not None and data_packet.port_dst is not None:
+                if data_packet.ip_src not in port_list:
+                    port_list.append(data_packet.port_src)
+                if data_packet.ip_dst not in port_list:
+                    port_list.append(data_packet.port_dst)
+        return len(port_list)
+
+
+    def calculate_bitrate(self):
+        if not self.capture_list:
+            return 0
+        first_time = self.capture_list[0].time
+        last_time = self.capture_list[-1].time
+        times = [first_time, last_time]
+        time_objs = []
+        for timers in times:
+            time_objs.append(datetime.strptime(str(timers), "%H:%M:%S:%f"))
+        times.clear()
+        for time_obj in time_objs:
+            times.append(time_obj.hour * 3600 + time_obj.minute * 60 + time_obj.second + time_obj.microsecond / 1e6)
+
+        total_size = sum(data_packet.length for data_packet in self.capture_list)
+        total_time = times[-1] - times[0]
+        return total_size / total_time if total_time != 0 else 0
 
 class DataCapture:
     def __init__(self, list_of_data_packet=None):
@@ -19,6 +72,7 @@ class DataCapture:
         else:
             self.capture_list = list_of_data_packet
 
+        self.stats = Statistics(self.capture_list)
         self.size = len(self.capture_list)
 
     def __iter__(self):
@@ -40,16 +94,42 @@ class DataCapture:
         except TypeError:
             logging.error(f'Object of type {type(data_packet).__name__} is not of type DataPacket')
 
+    def get_packet(self,index):
+        return self.capture_list[index]
+
     def show(self,index=None):
         if index is None:
             for data_packet in self.capture_list:
                 print("\033[94mPACKET N°"+str(self.capture_list.index(data_packet))+" :")
                 data_packet.show()
+            self.show_stats()
 
         else:
             print("\033[94mPACKET N°" + str(index) + " :")
             self.capture_list[index].show()
 
+
+    def print_field(self, field_name, field_value):
+        present_color = '\033[94m'
+        none_color = '\033[91m'
+        reset_color = '\033[0m'
+        if field_value is not None:
+            print(f"{present_color}{field_name} : {reset_color}{field_value}")
+        else:
+            print(f"{none_color}{field_name} : X")
+
+    def show_stats(self):
+        fields = [
+            ("BITRATE (Bps)", self.stats.bitrate),
+            ("AMOUNT OF IP", self.stats.ip_amount),
+            ("AMOUNT OF PORT", self.stats.port_amount),
+        ]
+        print("\033[94mSTATISTICS : ")
+        print("\033[94m---------------------------------------------------")
+        for field_name, field_value in fields:
+            self.print_field(field_name, field_value)
+        print("\033[94m---------------------------------------------------")
+        print()
 
 class DataPacket:
     def __init__(self, type=None, protocol=None, length=None, data=None, ip_src=None, ip_dst=None, p_src=None,
@@ -60,8 +140,8 @@ class DataPacket:
         self.data = data
         self.ip_src = ip_src
         self.ip_dst = ip_dst
-        self.p_src = p_src
-        self.p_dst = p_dst
+        self.port_src = p_src
+        self.port_dst = p_dst
         self.ack = ack
         self.flags = flags
         self.time = timestamp
@@ -89,8 +169,8 @@ class DataPacket:
             ("FLAGS",self.flags),
             ("IP SOURCE", self.ip_src),
             ("IP DESTINATION", self.ip_dst),
-            ("PORT SRC", self.p_src),
-            ("PORT DST", self.p_dst),
+            ("PORT SRC", self.port_src),
+            ("PORT DST", self.port_dst),
             ("DATA", self.data)
         ]
         print(present_color + "---------------------------------------------------")
@@ -101,11 +181,11 @@ class DataPacket:
 
 
 class DataExtractor:
-    def __init__(self, capture):
-        cap_path = os.path.join(data_path, capture)
-        if capture.split('.')[-1] in ['pcap', 'pcapng']:
+    def __init__(self, raw_capture):
+        cap_path = os.path.join(data_path, raw_capture)
+        if raw_capture.split('.')[-1] in ['pcap', 'pcapng']:
             try:
-                self.capture = rdpcap(cap_path)
+                self.raw_capture = rdpcap(cap_path)
                 logging.info(f"{cap_path} loaded successfully !")
             except Exception as e:
                 logging.error(e)
@@ -115,7 +195,7 @@ class DataExtractor:
 
     @staticmethod
     def make_packet_obj(simple_packet, nbr):
-        packet_nbr = nbr
+        packet_nbr = nbr + 1
         type = simple_packet[Ether].type
         length = len(simple_packet)
         data = None
@@ -153,7 +233,7 @@ class DataExtractor:
 
         if simple_packet.haslayer('Raw'):
             data = simple_packet['Raw'].load
-        time.sleep(0.3)
+        time.sleep(0.1)
         print("\r" + str(packet_nbr) + " packet(s) processed...", end='')
         return DataPacket(type=type, length=length, data=data, ip_src=ip_src, ip_dst=ip_dst, protocol=protocol,
                           p_src=p_src, p_dst=p_dst,ack=ack,flags=flags,timestamp=timestamp)
@@ -161,7 +241,7 @@ class DataExtractor:
     def extract_data(self, split_capture=None):
         data_capture = DataCapture()
         if split_capture is None:
-            for packet in self.capture:
+            for packet in self.raw_capture:
                 data_capture.add_packet(self.make_packet_obj(packet, data_capture.size))
         else:
             for packet in split_capture:
@@ -169,10 +249,10 @@ class DataExtractor:
         print("\n")
         return data_capture
 
-    def split_capture(self, packet_by_capture):
+    def split_raw_capture(self, packet_by_capture):
         split_cap = []
         packets = []
-        for packet in self.capture:
+        for packet in self.raw_capture:
             if len(packets) < packet_by_capture:
                 packets.append(packet)
             if len(packets) >= packet_by_capture:

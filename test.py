@@ -1,15 +1,23 @@
-#import torch
+import torch
+import numpy as np
 from extracting import DataExtractor
 import utils
-import json
+from processing import Processor
+from dataset_maker import DatasetMaker
 
 utils.welcome()
 
-test_extract = DataExtractor("dataicmp.pcapng")
+#test_extract = DataExtractor("dataicmp.pcapng")
+
+#a = test_extract.extract_data()
+#processor = Processor(a)
+#processed_capture = processor.output
+#processed_cap_array = processed_capture.to_array()
+#np_array = np.array(processed_cap_array)
+#tensor = torch.tensor(processed_cap_array,dtype=torch.float)
+
+dataset_maker = DatasetMaker("Datasets/malicious","Datasets/normal")
+dataset_maker.build_raw_dataset()
 
 
-split = test_extract.split_raw_capture(50)
-a = test_extract.extract_data()
-print(a)
-a.show()
-#print(torch.cuda.is_available())
+print(torch.cuda.is_available())

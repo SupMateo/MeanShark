@@ -1,15 +1,13 @@
 import os
 import logging
-import time
 from datetime import datetime
-
 from scapy.all import *
 from scapy.layers.l2 import Ether
+import utils
 
 dirname = os.getcwd()
 data_path = os.path.join(dirname, 'Dataset')
-logging.basicConfig(level=logging.DEBUG,
-                    format='\033[33m[MEANSHARK | %(asctime)s | %(levelname)s] \033[0m %(message)s')
+
 
 class Statistics:
     def __init__(self, capture_list):
@@ -67,6 +65,7 @@ class Statistics:
 
 class DataCapture:
     def __init__(self, list_of_data_packet=None):
+        self.is_processed = False
         if list_of_data_packet is None:
             self.capture_list = []
         else:
@@ -82,7 +81,7 @@ class DataCapture:
         return f"{self.capture_list}"
 
     def __str__(self):
-        return str("DataCapture : < "+str(self.capture_list)+">")
+        return str("DataCapture<"+str(self.capture_list)+">")
 
     def add_packet(self, data_packet):
         try:
@@ -128,8 +127,9 @@ class DataCapture:
         print("\033[94m---------------------------------------------------")
         for field_name, field_value in fields:
             self.print_field(field_name, field_value)
-        print("\033[94m---------------------------------------------------")
+        print("\033[94m---------------------------------------------------\033[0m")
         print()
+
 
 class DataPacket:
     def __init__(self, type=None, protocol=None, length=None, data=None, ip_src=None, ip_dst=None, p_src=None,
@@ -147,7 +147,7 @@ class DataPacket:
         self.time = timestamp
 
     def __repr__(self):
-        return "DataPacket < type : " + str(self.type) + " | " + str(self.length) + " bytes >"
+        return "DataPacket< type : " + str(self.type) + " | " + str(self.length) + " bytes >"
 
     def print_field(self, field_name, field_value):
         present_color = '\033[94m'
@@ -160,6 +160,7 @@ class DataPacket:
 
     def show(self):
         present_color = '\033[94m'
+        reset_color = '\033[0m'
         fields = [
             ("TYPE", self.type),
             ("TIME (h:m:s:f)", self.time),
@@ -176,13 +177,22 @@ class DataPacket:
         print(present_color + "---------------------------------------------------")
         for field_name, field_value in fields:
             self.print_field(field_name, field_value)
-        print(present_color + "---------------------------------------------------")
+        print(present_color + "---------------------------------------------------" + reset_color)
         print("")
 
 
 class DataExtractor:
     def __init__(self, raw_capture):
-        cap_path = os.path.join(data_path, raw_capture)
+        try:
+            cap_path = os.path.join(data_path, raw_capture)
+            logging.info("capture found at " + cap_path)
+        except:
+            try:
+                cap_path = raw_capture
+                logging.info("capture found at " + cap_path)
+            except:
+                logging.error("capture could not be found")
+                exit(1)
         if raw_capture.split('.')[-1] in ['pcap', 'pcapng']:
             try:
                 self.raw_capture = rdpcap(cap_path)
@@ -195,8 +205,10 @@ class DataExtractor:
 
     @staticmethod
     def make_packet_obj(simple_packet, nbr):
-        packet_nbr = nbr + 1
-        type = simple_packet[Ether].type
+        if Ether in simple_packet:
+            type = simple_packet[Ether].type
+        else :
+            type = None
         length = len(simple_packet)
         data = None
         ip_src = None
@@ -205,7 +217,7 @@ class DataExtractor:
         p_src = None
         p_dst = None
         ack = None
-        flags=None
+        flags = None
         timestamp = datetime.fromtimestamp(float(simple_packet.time)).strftime('%H:%M:%S:%f')
 
         if ARP in simple_packet:
@@ -233,8 +245,6 @@ class DataExtractor:
 
         if simple_packet.haslayer('Raw'):
             data = simple_packet['Raw'].load
-        time.sleep(0.1)
-        print("\r" + str(packet_nbr) + " packet(s) processed...", end='')
         return DataPacket(type=type, length=length, data=data, ip_src=ip_src, ip_dst=ip_dst, protocol=protocol,
                           p_src=p_src, p_dst=p_dst,ack=ack,flags=flags,timestamp=timestamp)
 
@@ -246,10 +256,10 @@ class DataExtractor:
         else:
             for packet in split_capture:
                 data_capture.add_packet(self.make_packet_obj(packet, data_capture.size))
-        print("\n")
         return data_capture
 
-    def split_raw_capture(self, packet_by_capture):
+    def split_raw_capture(self, packet_by_capture, max=None):
+        logging.info("split Capture in samples of " + str(packet_by_capture)+"...")
         split_cap = []
         packets = []
         for packet in self.raw_capture:
@@ -258,7 +268,16 @@ class DataExtractor:
             if len(packets) >= packet_by_capture:
                 split_cap.append(packets)
                 packets = []
-        if len(packets) > 0:  # Add the last packets if they don't make a full batch
+
+            if max is not None and len(split_cap) >= max:
+                break
+            if max is not None:
+                print(f"\r{len(split_cap)+1}" + " samples made : " + "█"*int((len(split_cap)/max)*100) + " " +
+                      f"{int(((len(split_cap)+1)/max)*100)}%", end='')
+            if max is None:
+                print(f"\r{len(split_cap)+1}" + " samples made...", end='')
+        if len(packets) > 0:
             split_cap.append(packets)
+        print("")
         logging.info(f"Capture split successfully in {len(split_cap)} part(s) !")
         return split_cap

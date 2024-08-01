@@ -7,7 +7,7 @@ class ProcessedPacket:
 
     def __init__(self, data_packet):
         self.type = self.process_type(data_packet.type)
-        self.protocol = data_packet.protocol
+        self.protocol = self.process_protocol(data_packet.protocol)
         self.length = data_packet.length
         self.data = self.process_data(data_packet.data)
         self.ip_src = self.process_ip(data_packet.ip_src)
@@ -30,18 +30,19 @@ class ProcessedPacket:
         if data is not None:
             try:
                 int_list = [ord(char) for char in data.decode()]
-            except :
-                pass
-
-            try:
-                int_list = list(data)
             except:
-                pass
+                int_list = []
 
-            if int_list is None or len(int_list) == 0:
+            if not int_list:
+                try:
+                    int_list = list(data)
+                except:
+                    logging.error("Data conversion failed")
+                    return [-1.0] * target_length
+
+            if len(int_list) == 0:
                 logging.error("Data encoding failed")
-                return -1
-
+                return [-1.0] * target_length
             else:
                 if len(int_list) > target_length:
                     removed_values = int_list[target_length:]
@@ -49,7 +50,7 @@ class ProcessedPacket:
 
                     int_list = int_list[:target_length]
 
-                    increment = removed_sum // target_length
+                    increment = removed_sum / target_length
                     remainder = removed_sum % target_length
 
                     for i in range(target_length):
@@ -59,42 +60,55 @@ class ProcessedPacket:
 
                 elif len(int_list) < target_length:
                     int_list.extend([-1] * (target_length - len(int_list)))
-            return int_list
+
+                min_value = min(int_list)
+                max_value = max(int_list)
+
+                if max_value > min_value:
+                    normalized_list = [(x - min_value) / (max_value - min_value) for x in int_list]
+                else:
+                    normalized_list = [0.0] * target_length
+
+                return normalized_list
 
         else:
-            int_list = []
-            for i in range(target_length):
-                int_list.append(-1)
-            return int_list
+            return [-1.0] * target_length
 
     def process_ip(self, ip):
         processed_ip = -1
         if ip is not None:
             if ':' in ip:
                 hex_string = ip.replace(':', '')
-                processed_ip = int(int(hex_string, 16)/100000)
+                processed_ip = int(int(hex_string, 16)/340282366920937254537554992802593570815)
             else:
                 decomposed_ip = ip.split('.')
                 for i in range(len(decomposed_ip)):
-                    processed_ip += processed_ip + int(decomposed_ip[i])*pow(256, abs(i-3))
-        return int(processed_ip/50000)
+                    processed_ip += processed_ip + decomposed_ip[i]*pow(256, abs(i-3))
+                processed_ip = processed_ip/4294967295
+        return processed_ip
 
     def process_port(self, port):
         if port is not None:
-            return port
+            return port/65535
         else:
             return -1
 
     def process_type(self, type):
         if type is not None:
-            return type
+            return type/65535
+        else:
+            return -1
+
+    def process_protocol(self, protocol):
+        if protocol is not None:
+            return protocol/255
         else:
             return -1
 
 
     def process_ack(self, ack):
         if ack is not None:
-            return ack
+            return ack/4294967295
         else:
             return -1
 
@@ -144,6 +158,9 @@ class ProcessedCapture:
         for data_packets in self.data_capture:
             self.add_processed_packet(ProcessedPacket(data_packets))
         self.stats = data_capture.stats
+        self.stats.bitrate_normalized = self.stats.bitrate/10000
+        self.stats.ip_amount_normalized = self.stats.ip_amount/(len(data_capture)*2)
+        self.stats.ip_port_normalized = self.stats.port_amount /(len(data_capture)*2)
 
 
     def __iter__(self):

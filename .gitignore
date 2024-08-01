@@ -1,1 +1,5 @@
-Dataset/
+*.pcap
+*.pcapng
+*.cap
+*.zip
+*.json

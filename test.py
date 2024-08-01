@@ -3,7 +3,9 @@ import numpy as np
 from extracting import DataExtractor
 import utils
 from processing import Processor
-from dataset_maker import DatasetMaker
+from dataset_maker import DatasetMaker, MeanSharkDataset
+import gc
+from training import Trainer
 
 utils.welcome()
 
@@ -16,8 +18,13 @@ utils.welcome()
 #np_array = np.array(processed_cap_array)
 #tensor = torch.tensor(processed_cap_array,dtype=torch.float)
 
-dataset_maker = DatasetMaker("Datasets/malicious","Datasets/normal")
-dataset_maker.build_raw_dataset()
-
-
-print(torch.cuda.is_available())
+#dataset_maker = DatasetMaker("malicious","normal")
+#o = dataset_maker.make()
+mean_shark_dataset = MeanSharkDataset()
+#gc.collect()
+#o.save_dataset_to_json()
+#print(torch.cuda.is_available())
+trainer = Trainer(mean_shark_dataset)
+trainer.train()
+trainer.test()
+trainer.save_model()

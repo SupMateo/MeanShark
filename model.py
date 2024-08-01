@@ -7,17 +7,22 @@ class MeanSharkNet(nn.Module):
     def __init__(self,input_size,hidden_size, output_size):
         super(MeanSharkNet, self).__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
-        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.fc1 = nn.Linear(hidden_size+3, hidden_size)
+        self.bn1 = nn.BatchNorm1d(hidden_size)
         self.relu1 = nn.ReLU()
+        self.dropout = nn.Dropout(0.1)
         self.fc2 = nn.Linear(hidden_size, output_size)
 
     def forward(self, x_packets, x_stats):
+
         lstm_out, (hn, cn) = self.lstm(x_packets)
         lstm_out = hn[-1]
 
         combined = torch.cat((lstm_out, x_stats), dim=1)
 
         out = self.fc1(combined)
+        out = self.dropout(out)
+        out = self.bn1(out)
         out = self.relu1(out)
         out = self.fc2(out)
         return out

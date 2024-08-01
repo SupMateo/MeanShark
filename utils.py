@@ -1,7 +1,7 @@
 import logging
 
-info = {'version': 'alpha 0.0.2', 'release_date': 'July 31th, 2024'}
-logging.basicConfig(level=logging.DEBUG,
+info = {'version': 'alpha 0.0.3', 'release_date': 'August 1st, 2024'}
+logging.basicConfig(level=logging.INFO,
                     format='\033[33m[MEANSHARK | %(asctime)s | %(levelname)s] \033[0m %(message)s')
 
 def welcome():

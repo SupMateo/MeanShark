@@ -12,6 +12,9 @@ data_path = os.path.join(dirname, 'Dataset')
 class Statistics:
     def __init__(self, capture_list):
         self.capture_list = capture_list
+        self.bitrate_normalized = None
+        self.ip_amount_normalized = None
+        self.port_amount_normalized = None
 
     @property
     def ip_amount(self):
@@ -76,6 +79,9 @@ class DataCapture:
 
     def __iter__(self):
         return iter(self.capture_list)
+
+    def __len__(self):
+        return len(self.capture_list)
 
     def __repr__(self):
         return f"{self.capture_list}"
@@ -198,7 +204,8 @@ class DataExtractor:
                 self.raw_capture = rdpcap(cap_path)
                 logging.info(f"{cap_path} loaded successfully !")
             except Exception as e:
-                logging.error(e)
+                logging.error("capture could not be loaded")
+                exit(1)
         else:
             logging.error('Capture must be pcap or pcapng file.')
             exit(1)
@@ -259,7 +266,7 @@ class DataExtractor:
         return data_capture
 
     def split_raw_capture(self, packet_by_capture, max=None):
-        logging.info("split Capture in samples of " + str(packet_by_capture)+"...")
+        logging.info("split capture in samples of " + str(packet_by_capture)+" packets...")
         split_cap = []
         packets = []
         for packet in self.raw_capture:
@@ -279,5 +286,5 @@ class DataExtractor:
         if len(packets) > 0:
             split_cap.append(packets)
         print("")
-        logging.info(f"Capture split successfully in {len(split_cap)} part(s) !")
+        logging.info(f"Capture split successfully in {len(split_cap)} part(s) with {len(packets)} packets !")
         return split_cap

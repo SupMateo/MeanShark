@@ -286,5 +286,5 @@ class DataExtractor:
         if len(packets) > 0:
             split_cap.append(packets)
         print("")
-        logging.info(f"Capture split successfully in {len(split_cap)} part(s) with {len(packets)} packets !")
+        logging.info(f"Capture split successfully in {len(split_cap)} part(s) with {packet_by_capture} packets !")
         return split_cap

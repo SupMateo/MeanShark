@@ -3,3 +3,7 @@
 *.cap
 *.zip
 *.json
+
+.ipynb_checkpoints/
+__pycache__/
+.idea/

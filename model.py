@@ -4,8 +4,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 
 class MeanSharkNet(nn.Module):
-    def __init__(self,input_size,hidden_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size):
         super(MeanSharkNet, self).__init__()
+
         self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
         self.fc1 = nn.Linear(hidden_size+3, hidden_size)
         self.bn1 = nn.BatchNorm1d(hidden_size)
@@ -14,6 +15,7 @@ class MeanSharkNet(nn.Module):
         self.fc2 = nn.Linear(hidden_size, output_size)
 
     def forward(self, x_packets, x_stats):
+
 
         lstm_out, (hn, cn) = self.lstm(x_packets)
         lstm_out = hn[-1]

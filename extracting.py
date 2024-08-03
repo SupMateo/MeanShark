@@ -36,18 +36,21 @@ class Statistics:
                     ip_list.append(data_packet.ip_src)
                 if data_packet.ip_dst not in ip_list:
                     ip_list.append(data_packet.ip_dst)
-        return len(ip_list)
+        ip_amount = len(ip_list)
+        assert not math.isnan(ip_amount), "ip_amount est NaN"
+        return ip_amount
 
     def calculate_port_amount(self):
         port_list = []
         for data_packet in self.capture_list:
             if data_packet.port_src is not None and data_packet.port_dst is not None:
-                if data_packet.ip_src not in port_list:
+                if data_packet.port_src not in port_list:
                     port_list.append(data_packet.port_src)
-                if data_packet.ip_dst not in port_list:
+                if data_packet.port_dst not in port_list:
                     port_list.append(data_packet.port_dst)
-        return len(port_list)
-
+        port_amount = len(port_list)
+        assert not math.isnan(port_amount), "port_amount est NaN"
+        return port_amount
 
     def calculate_bitrate(self):
         if not self.capture_list:
@@ -64,6 +67,8 @@ class Statistics:
 
         total_size = sum(data_packet.length for data_packet in self.capture_list)
         total_time = times[-1] - times[0]
+        if total_time <= 0:
+            total_time = -total_time
         return total_size / total_time if total_time != 0 else 0
 
 class DataCapture:
@@ -191,11 +196,11 @@ class DataExtractor:
     def __init__(self, raw_capture):
         try:
             cap_path = os.path.join(data_path, raw_capture)
-            logging.info("capture found at " + cap_path)
+            logging.info("capture found at " + cap_path + ". This may take a while to load it...")
         except:
             try:
                 cap_path = raw_capture
-                logging.info("capture found at " + cap_path)
+                logging.info("capture found at " + cap_path+". This may take a while to load it...")
             except:
                 logging.error("capture could not be found")
                 exit(1)
@@ -265,26 +270,33 @@ class DataExtractor:
                 data_capture.add_packet(self.make_packet_obj(packet, data_capture.size))
         return data_capture
 
-    def split_raw_capture(self, packet_by_capture, max=None):
-        logging.info("split capture in samples of " + str(packet_by_capture)+" packets...")
+    def split_raw_capture(self, packet_by_capture, max_nbr_of_samples=None):
+        logging.info("Split capture in samples of " + str(packet_by_capture) + " packets...")
         split_cap = []
         packets = []
-        for packet in self.raw_capture:
-            if len(packets) < packet_by_capture:
-                packets.append(packet)
+        total_packets = len(self.raw_capture)
+
+        max_samples_to_process = min(total_packets // packet_by_capture,
+                                     max_nbr_of_samples) if max_nbr_of_samples else total_packets // packet_by_capture
+
+        for i, packet in enumerate(self.raw_capture):
+            packets.append(packet)
             if len(packets) >= packet_by_capture:
                 split_cap.append(packets)
                 packets = []
 
-            if max is not None and len(split_cap) >= max:
-                break
-            if max is not None:
-                print(f"\r{len(split_cap)+1}" + " samples made : " + "█"*int((len(split_cap)/max)*100) + " " +
-                      f"{int(((len(split_cap)+1)/max)*100)}%", end='')
-            if max is None:
-                print(f"\r{len(split_cap)+1}" + " samples made...", end='')
+                progress = len(split_cap) / max_samples_to_process * 100
+                bar = "█" * (int(progress) // 2)
+                print(
+                    f"\rSamples extracted: {bar.ljust(50)} {int(progress)}% [{len(split_cap)}/{max_samples_to_process}]",
+                    end='')
+
+                if max_nbr_of_samples is not None and len(split_cap) >= max_nbr_of_samples:
+                    break
+
         if len(packets) > 0:
             split_cap.append(packets)
+
         print("")
-        logging.info(f"Capture split successfully in {len(split_cap)} part(s) with {packet_by_capture} packets !")
+        logging.info(f"Capture split successfully into {len(split_cap)} part(s) with {packet_by_capture} packets each!")
         return split_cap

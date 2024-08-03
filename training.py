@@ -4,7 +4,16 @@ from torch.utils.data import DataLoader, TensorDataset,random_split
 from model import MeanSharkNet
 import logging
 import matplotlib.pyplot as plt
+import torch.nn as nn
 import utils
+
+
+def init_weights(m):
+    if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+        nn.init.xavier_uniform_(m.weight)
+        if m.bias is not None:
+            nn.init.zeros_(m.bias)
+
 
 class Trainer:
     def __init__(self, mean_shark_dataset):
@@ -15,16 +24,9 @@ class Trainer:
         stats = torch.tensor(mean_shark_dataset.stats, dtype=torch.float32).to(device)
         labels = torch.tensor(mean_shark_dataset.labels, dtype=torch.long).to(device)
 
-        features_max = torch.max(features)
-        stats_max = torch.max(stats)
-
-        normalized_features = features /features_max
-
-        normalized_stats = stats/stats_max
-
-        self.dataset = TensorDataset(normalized_features, normalized_stats, labels)
-        self.train_size = int(0.5 * len(self.dataset))
-        self.val_size = int(0.25 * len(self.dataset))
+        self.dataset = TensorDataset(features, stats, labels)
+        self.train_size = int(0.7 * len(self.dataset))
+        self.val_size = int(0.15 * len(self.dataset))
         self.test_size = len(self.dataset) - self.train_size - self.val_size
         self.train_dataset, self.val_dataset, self.test_dataset = random_split(self.dataset, [self.train_size, self.val_size, self.test_size])
         self.batch_size = 100
@@ -33,17 +35,24 @@ class Trainer:
         self.output_size = len(np.unique(mean_shark_dataset.labels))
         self.model = MeanSharkNet(self.input_size, self.hidden_size,self.output_size).to(device)
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001,weight_decay=0.3)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00005)
         self.train_losses = []
         self.val_losses = []
         self.train_accuracies = []
         self.val_accuracies = []
 
-    def train(self, num_epochs=60):
+    def train(self, num_epochs=80):
         train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False)
+        '''
+        for batch in train_loader:
+            print(type(batch))
+            print(len(batch))
+            print(batch)
+            break
+        '''
         logging.info("Training start")
-        torch.autograd.set_detect_anomaly(True)
+        #torch.autograd.set_detect_anomaly(True)
 
         for epoch in range(num_epochs):
 
@@ -56,6 +65,13 @@ class Trainer:
                 outputs = self.model(x_packets, x_stats)
                 loss = self.criterion(outputs, y)
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+                for name, param in self.model.named_parameters():
+                    if param.grad is not None:
+                        if torch.isnan(param.grad).any():
+                            print(f"NaN in gradients of {name}")
+                        elif torch.isinf(param.grad).any():
+                            print(f"Inf in gradients of {name}")
                 self.optimizer.step()
                 running_loss += loss.item()
                 _, predicted = torch.max(outputs, 1)

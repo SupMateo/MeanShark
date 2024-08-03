@@ -1,3 +1,4 @@
+import gc
 import os
 import utils
 import json
@@ -6,6 +7,7 @@ from extracting import DataExtractor
 from processing import Processor
 import numpy as np
 from sklearn.model_selection import train_test_split
+import math
 
 
 class MeanSharkDataset:
@@ -38,6 +40,7 @@ class MeanSharkDataset:
 
     def load_dataset_from_json(self):
         try:
+            logging.info(f"Loading dataset from JSON")
             with open("raw_dataset.json", 'r') as f:
                 data_loaded = json.load(f)
         except FileNotFoundError:
@@ -96,61 +99,113 @@ class DatasetMaker:
         raw_labels = []
         malicious_capture = os.listdir(self.path_malicious)
         normal_capture = os.listdir(self.path_normal)
-        capture_in_raw_dataset = 0
-        nbr_of_samples = 400
+        nbr_of_samples = 600
+
         for capture in malicious_capture:
             if capture.split('.')[-1] in ['pcap', 'pcapng']:
                 print()
                 logging.info(f'Adding {capture} (MALICIOUS) data to the raw dataset...')
                 extractor = DataExtractor(os.path.join(self.path_malicious, capture))
-                samples = extractor.split_raw_capture(200, max=nbr_of_samples)
+                samples = extractor.split_raw_capture(200, max_nbr_of_samples=nbr_of_samples)
+                total_samples_in_file = len(samples)
 
-                for sample in samples:
+                for i, sample in enumerate(samples):
                     data_sample = extractor.extract_data(split_capture=sample)
                     processor = Processor(data_sample)
                     processed_sample = processor.output
-                    stats = processed_sample.stats
                     sample_array = processed_sample.to_array()
                     raw_dataset.append(sample_array)
-                    sample_stats = [stats.bitrate_normalized, stats.ip_amount_normalized, stats.port_amount_normalized]
+                    if processed_sample.bitrate_normalized is None or math.isnan(processed_sample.bitrate_normalized):
+                        processed_sample.bitrate_normalized = 0
+                    if processed_sample.ip_amount_normalized is None or math.isnan(processed_sample.ip_amount_normalized):
+                        processed_sample.ip_amount_normalized = 0
+                    if processed_sample.port_amount_normalized is None or math.isnan(processed_sample.port_amount_normalized):
+                        processed_sample.port_amount_normalized = 0
+                    sample_stats = [processed_sample.bitrate_normalized, processed_sample.ip_amount_normalized, processed_sample.port_amount_normalized]
+                    assert not any(math.isnan(value) for value in sample_stats), "sample_stats contain NaN"
                     raw_stats.append(sample_stats)
                     raw_labels.append(1)
-                    print("\rsamples processed : " + "█" * int(
-                        ((len(raw_labels)-nbr_of_samples*capture_in_raw_dataset) / len(samples)) * 100) + " " +
-                          f"{int(((len(raw_labels)) / len(samples)) * 100)}% [" +
-                          f"{int(len(raw_labels)-nbr_of_samples*capture_in_raw_dataset)}/" +
-                          f"{len(samples)}" + "]", end='')
+                    progress = int(((i + 1) / total_samples_in_file) * 100)
+                    bar = "█" * (progress // 2)
+                    print(f"\rsamples processed : {bar.ljust(50)} {progress}% [{i + 1}/{total_samples_in_file}]",
+                          end='')
                 print("")
-                capture_in_raw_dataset += 1
+
             else:
                 logging.info(f'{capture} is not a pcap or pcapng file. This file is ignored')
 
         for capture in normal_capture:
             if capture.split('.')[-1] in ['pcap', 'pcapng']:
                 print()
-                logging.info(f'Adding {capture} (NORMAL) data to our raw dataset...')
+                logging.info(f'Adding {capture} (NORMAL) data to the raw dataset...')
                 extractor = DataExtractor(os.path.join(self.path_normal, capture))
-                samples = extractor.split_raw_capture(200, max=nbr_of_samples)
+                samples = extractor.split_raw_capture(200, max_nbr_of_samples=nbr_of_samples)
+                total_samples_in_file = len(samples)
 
-                for sample in samples:
+                for i, sample in enumerate(samples):
                     data_sample = extractor.extract_data(split_capture=sample)
                     processor = Processor(data_sample)
                     processed_sample = processor.output
-                    stats = processed_sample.stats
                     sample_array = processed_sample.to_array()
                     raw_dataset.append(sample_array)
-                    sample_stats = [stats.bitrate_normalized, stats.ip_amount_normalized, stats.port_amount_normalized]
+                    if processed_sample.bitrate_normalized is None or math.isnan(processed_sample.bitrate_normalized):
+                        processed_sample.bitrate_normalized = 0
+                    if processed_sample.ip_amount_normalized is None or math.isnan(
+                            processed_sample.ip_amount_normalized):
+                        processed_sample.ip_amount_normalized = 0
+                    if processed_sample.port_amount_normalized is None or math.isnan(
+                            processed_sample.port_amount_normalized):
+                        processed_sample.port_amount_normalized = 0
+                    sample_stats = [processed_sample.bitrate_normalized, processed_sample.ip_amount_normalized,
+                                    processed_sample.port_amount_normalized]
+                    assert not any(math.isnan(value) for value in sample_stats), "sample_stats contain NaN"
                     raw_stats.append(sample_stats)
                     raw_labels.append(0)
-                    print("\rsamples processed : " + "█" * int(
-                        ((len(raw_labels) - nbr_of_samples * capture_in_raw_dataset) / len(samples)) * 100) + " " +
-                          f"{int(((len(raw_labels)) / len(samples)) * 100)}% [" +
-                          f"{int(len(raw_labels) - nbr_of_samples * capture_in_raw_dataset)}/" +
-                          f"{len(samples)}" + "]", end='')
-                    print("")
-                    capture_in_raw_dataset += 1
+                    progress = int(((i + 1) / total_samples_in_file) * 100)
+                    bar = "█" * (progress // 2)
+                    print(f"\rSamples processed : {bar.ljust(50)} {progress}% [{i + 1}/{total_samples_in_file}]",
+                          end='')
+                print("")
             else:
                 logging.info(f'{capture} is not a pcap or pcapng file. This file is ignored')
 
         logging.info("Raw data build successfully")
-        return raw_dataset, raw_stats, raw_labels
+        max_length = max(len(feature) for feature in raw_dataset)
+        filtered_dataset = [feature for feature in raw_dataset if len(feature) == max_length]
+        filtered_stats = [stat for feature, stat in zip(raw_dataset, raw_stats) if len(feature) == max_length]
+        filtered_labels = [label for feature, label in zip(raw_dataset, raw_labels) if len(feature) == max_length]
+
+        return filtered_dataset, filtered_stats, filtered_labels
+
+    def add_data_to_dataset(self):
+        logging.info(f"Adding data to dataset.")
+        new_features, new_stats, new_labels = self.build_raw_dataset()
+        gc.collect()
+
+        try:
+            logging.info("Loading dataset from JSON.")
+            with open("raw_dataset.json", 'r') as f:
+                data_loaded = json.load(f)
+        except FileNotFoundError:
+            logging.error("raw_dataset.json not found. Exiting add_data_to_dataset.")
+            exit(1)
+
+        existing_features = np.array(data_loaded.get('dataset'), dtype=np.float32)
+        existing_stats = np.array(data_loaded.get('stats'), dtype=np.float32)
+        existing_labels = np.array(data_loaded.get('labels'), dtype=np.int64)
+
+        updated_features = np.concatenate((existing_features, new_features), axis=0)
+        updated_stats = np.concatenate((existing_stats, new_stats), axis=0)
+        updated_labels = np.concatenate((existing_labels, new_labels), axis=0)
+
+        data_to_save = {
+            'dataset': updated_features.tolist(),
+            'stats': updated_stats.tolist(),
+            'labels': updated_labels.tolist()
+        }
+
+        with open("raw_dataset.json", 'w') as f:
+            logging.info("Saving dataset to JSON. This may take a while...")
+            json.dump(data_to_save, f, indent=4)
+
+        logging.info("New data added and raw_dataset.json updated")

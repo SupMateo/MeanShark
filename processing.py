@@ -1,6 +1,7 @@
 from extracting import Statistics
 import utils
 import logging
+import math
 
 
 class ProcessedPacket:
@@ -79,12 +80,12 @@ class ProcessedPacket:
         if ip is not None:
             if ':' in ip:
                 hex_string = ip.replace(':', '')
-                processed_ip = int(int(hex_string, 16)/340282366920937254537554992802593570815)
+                processed_ip = int(hex_string, 16)/(340282366920938463463374607431768211455*30)
             else:
                 decomposed_ip = ip.split('.')
                 for i in range(len(decomposed_ip)):
-                    processed_ip += processed_ip + decomposed_ip[i]*pow(256, abs(i-3))
-                processed_ip = processed_ip/4294967295
+                    processed_ip += float(processed_ip + int(decomposed_ip[i])*pow(256, abs(i-3)))
+                processed_ip = processed_ip/(4294967295*30)
         return processed_ip
 
     def process_port(self, port):
@@ -157,10 +158,14 @@ class ProcessedCapture:
         self.processed_packets = []
         for data_packets in self.data_capture:
             self.add_processed_packet(ProcessedPacket(data_packets))
-        self.stats = data_capture.stats
-        self.stats.bitrate_normalized = self.stats.bitrate/10000
-        self.stats.ip_amount_normalized = self.stats.ip_amount/(len(data_capture)*2)
-        self.stats.ip_port_normalized = self.stats.port_amount /(len(data_capture)*2)
+        #print("bitrate :"+str(self.stats.bitrate) + "ip amount :"+str(self.stats.ip_amount) + "port amount :"+str(self.stats.port_amount) )
+        self.bitrate_normalized = data_capture.stats.bitrate / 100000000
+        self.ip_amount_normalized = (data_capture.stats.ip_amount - 2) / (len(data_capture) * 2 - 2)
+        self.port_amount_normalized = data_capture.stats.port_amount - 2 / (len(data_capture) * 2 - 2)
+
+        assert not math.isnan(self.bitrate_normalized), "bitrate_normalized is NaN"
+        assert not math.isnan(self.ip_amount_normalized), "ip_amount_normalized is NaN"
+        assert not math.isnan(self.port_amount_normalized), "port_amount_normalized is NaN"
 
 
     def __iter__(self):

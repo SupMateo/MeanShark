@@ -99,7 +99,7 @@ class DatasetMaker:
         raw_labels = []
         malicious_capture = os.listdir(self.path_malicious)
         normal_capture = os.listdir(self.path_normal)
-        nbr_of_samples = 600
+        nbr_of_samples = 200
 
         for capture in malicious_capture:
             if capture.split('.')[-1] in ['pcap', 'pcapng']:

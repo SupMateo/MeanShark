@@ -21,6 +21,8 @@ def welcome():
     print("                     ▀      ▀▀  ▀▀▀      ▀ ")
     print("                        ▀   ▄▄▄  ▄    ▀ ")
     print("")
+    print("                       Training Tool                       ")
+    print("")
     print("    Developped by SupMateo on GitHub")
     print("    https://github.com/SupMateo/MeanShark")
     print("    Version {version}, {release_date}".format(version=info.info['version'],release_date=info.info['release_date']))

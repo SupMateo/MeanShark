@@ -11,12 +11,10 @@ class MeanSharkNet(nn.Module):
         self.fc1 = nn.Linear(hidden_size+3, hidden_size)
         self.bn1 = nn.BatchNorm1d(hidden_size)
         self.relu1 = nn.ReLU()
-        self.dropout = nn.Dropout(0.1)
+        self.dropout = nn.Dropout(0.13)
         self.fc2 = nn.Linear(hidden_size, output_size)
 
     def forward(self, x_packets, x_stats):
-
-
         lstm_out, (hn, cn) = self.lstm(x_packets)
         lstm_out = hn[-1]
 

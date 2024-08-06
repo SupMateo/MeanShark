@@ -29,28 +29,21 @@ class Trainer:
         self.val_size = int(0.15 * len(self.dataset))
         self.test_size = len(self.dataset) - self.train_size - self.val_size
         self.train_dataset, self.val_dataset, self.test_dataset = random_split(self.dataset, [self.train_size, self.val_size, self.test_size])
-        self.batch_size = 100
+        self.batch_size = 75
         self.input_size = mean_shark_dataset.features.shape[2]
-        self.hidden_size = 50
+        self.hidden_size = 70
         self.output_size = len(np.unique(mean_shark_dataset.labels))
         self.model = MeanSharkNet(self.input_size, self.hidden_size,self.output_size).to(device)
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00005)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00001, weight_decay=0.001)
         self.train_losses = []
         self.val_losses = []
         self.train_accuracies = []
         self.val_accuracies = []
 
-    def train(self, num_epochs=80):
+    def train(self, num_epochs=400):
         train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False)
-        '''
-        for batch in train_loader:
-            print(type(batch))
-            print(len(batch))
-            print(batch)
-            break
-        '''
         logging.info("Training start")
         #torch.autograd.set_detect_anomaly(True)
 

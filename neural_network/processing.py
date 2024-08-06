@@ -1,5 +1,5 @@
-from extracting import Statistics
-import utils
+
+
 import logging
 import math
 
@@ -80,7 +80,11 @@ class ProcessedPacket:
         if ip is not None:
             if ':' in ip:
                 hex_string = ip.replace(':', '')
-                processed_ip = int(hex_string, 16)/(340282366920938463463374607431768211455*30)
+                try:
+                    processed_ip = int(hex_string, 16)/(340282366920938463463374607431768211455*30)
+                except ValueError:
+                    processed_ip = 0.5
+                    
             else:
                 decomposed_ip = ip.split('.')
                 for i in range(len(decomposed_ip)):

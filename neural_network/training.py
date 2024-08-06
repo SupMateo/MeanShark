@@ -35,13 +35,13 @@ class Trainer:
         self.output_size = len(np.unique(mean_shark_dataset.labels))
         self.model = MeanSharkNet(self.input_size, self.hidden_size,self.output_size).to(device)
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00001, weight_decay=0.001)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00001)
         self.train_losses = []
         self.val_losses = []
         self.train_accuracies = []
         self.val_accuracies = []
 
-    def train(self, num_epochs=400):
+    def train(self, num_epochs=420):
         train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False)
         logging.info("Training start")

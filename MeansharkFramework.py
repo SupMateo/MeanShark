@@ -85,63 +85,44 @@ class MeanSharkFramework:
         self.side_frame = ctk.CTkFrame(self.root)
         self.upper_side_frame = ctk.CTkFrame(self.side_frame)
         self.packet_manager = PacketManager(self.model_manager, self.create_listbox())
+        self.last_sample_selected = None
+        self.sample_selected = None
+        self.last_packet_selected = None
+        self.packet_selected = None
         self.start_packet_capture()
 
-    def thread_gui(self):
-        last_sample_selected = None
-        last_packet_selected = None
-        while True:
-            sample_selected, packet_selected = self.get_elements_selected()
-            if last_sample_selected != sample_selected:
-                self.draw_info_sample(sample_selected)
-            if sample_selected is not None and packet_selected != last_packet_selected:
-                self.draw_info_packet(sample_selected, packet_selected)
-            last_sample_selected = sample_selected
-            last_packet_selected = packet_selected
-
-    def get_elements_selected(self):
-        sample_selected = self.packet_manager.listbox.curselection()
-        packet_selected = None
-        if sample_selected:
-            sample_selected = sample_selected[0]  # Prend le premier élément du tuple
-            packet_selected = self.packet_list.curselection()
-            if packet_selected:
-                packet_selected = packet_selected[0]  # Prend le premier élément du tuple
-        return sample_selected, packet_selected
-
-    def draw_info_sample(self, sample_index):
-        if sample_index is not None:
-            self.packet_list.delete(0, tk.END)
-            try:
+    def on_listbox_click(self, event):
+        selection = self.listbox.curselection()
+        if selection:
+            self.sample_selected = selection[0]
+            if self.sample_selected != self.last_sample_selected:
+                self.packet_list.delete(0, tk.END)
                 for i in range(200):
-                    packet = self.packet_manager.packet_list[200 * sample_index + i]
-                    self.packet_list.insert(i, packet.summary())
+                    self.packet_list.insert(i, self.packet_manager.packet_list[200*self.sample_selected + i].summary())
                     self.packet_list.itemconfig(i, {'bg': '#252526', 'fg': 'white'})
-            except Exception as e:
-                print(e)
-
-    def draw_info_packet(self, sample_index, packet_index):
-        if sample_index is None or packet_index is None:
-            return
-        try:
-            if isinstance(packet_index, int):
-                packet = self.packet_manager.packet_list[200 * sample_index + packet_index]
-                self.info.configure(state="normal")
-                self.info.delete(1.0, tk.END)
-                self.info.insert(tk.END, packet.show(dump=True))
-                self.info.configure(state="disabled")
+                self.last_sample_selected = self.sample_selected
             else:
-                print(f"Invalid packet_index: {packet_index}, Type: {type(packet_index)}")
-        except Exception as e:
-            print(e)
+                pass
+            print(f"Sample selected: {self.sample_selected}")
 
-    # Les autres fonctions de la classe restent inchangées...
-
+    def on_packet_listbox_click(self, event):
+        selection = self.packet_list.curselection()
+        print("clicked")
+        if selection:
+            self.packet_selected = selection[0]
+            if self.packet_selected != self.last_packet_selected:
+                packet_index = 200 * self.sample_selected + self.packet_selected
+                if 0 <= packet_index < len(self.packet_manager.packet_list):
+                    packet = self.packet_manager.packet_list[packet_index]
+                    packet_info = packet.show(dump=True)
+                    self.info.configure(state=tk.NORMAL)
+                    self.info.delete(1.0, tk.END)
+                    self.info.insert(tk.END, packet_info)
+                    self.info.configure(state=tk.DISABLED)
+            print(f"Packet selected: {self.packet_selected}")
 
 
     def start(self):
-        self.GUI_thread = threading.Thread(target=self.thread_gui, daemon=True)
-        self.GUI_thread.start()
         self.root.mainloop()
 
     def define_elements(self):
@@ -180,7 +161,7 @@ class MeanSharkFramework:
         self.launch_switch.pack(side="right", padx=10, pady=10)
 
         self.packets_frame = ctk.CTkFrame(self.root)
-        self.packet_list = tk.Listbox(self.packets_frame, bg="#252526", relief="flat", selectmode=tk.SINGLE)
+        self.packet_list = self.create_packet_listbox()
         self.packet_list.pack(side="left", padx=10, pady=10, fill="both", expand=True)
 
         self.scrollbar = ctk.CTkScrollbar(self.upper_side_frame, command=self.listbox.yview)
@@ -201,7 +182,21 @@ class MeanSharkFramework:
     def create_listbox(self):
         self.listbox = tk.Listbox(self.upper_side_frame, bg="#252526", relief="flat", selectmode=tk.SINGLE)
         self.listbox.pack(side="left", fill="both", padx=10, pady=10, expand=True)
+
+        # Bind the listbox click event to the on_listbox_click method
+        self.listbox.bind("<ButtonRelease-1>", self.on_listbox_click)
+
         return self.listbox
+
+    def create_packet_listbox(self):
+        self.packet_list = tk.Listbox(self.packets_frame, bg="#252526", relief="flat", selectmode=tk.SINGLE)
+        self.packet_list.pack(side="left", fill="both", padx=10, pady=10, expand=True)
+
+        # Bind the packet listbox click event to the on_packet_listbox_click method
+        print("packet list initialized")
+        self.packet_list.bind("<ButtonRelease-1>", self.on_packet_listbox_click)
+
+        return self.packet_list
 
     def start_packet_capture(self):
         thread_sniff = threading.Thread(target=scapy.sniff,

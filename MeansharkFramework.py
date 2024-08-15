@@ -44,6 +44,7 @@ class PacketManager:
         self.model_manager = model_manager
         self.listbox = listbox
         self.lock = threading.Lock()
+        self.is_enabled = True
 
     def process_current_sample(self):
         if len(self.current_sample) >= 200:
@@ -71,11 +72,17 @@ class PacketManager:
             self.current_sample = []
             self.sample_index += 1
 
+    def reset(self):
+        self.packet_list.clear()
+        self.current_sample.clear()
+        self.sample_index = 0
+
     def packet_thread(self, packet):
         with self.lock:
-            self.packet_list.append(packet)
-            self.current_sample.append(packet)
-            self.process_current_sample()
+            if self.is_enabled:
+                self.packet_list.append(packet)
+                self.current_sample.append(packet)
+                self.process_current_sample()
 
 
 class MeanSharkFramework:
@@ -90,6 +97,7 @@ class MeanSharkFramework:
         self.last_packet_selected = None
         self.packet_selected = None
         self.start_packet_capture()
+
 
     def on_listbox_click(self, event):
         selection = self.listbox.curselection()
@@ -120,6 +128,28 @@ class MeanSharkFramework:
                     self.info.insert(tk.END, packet_info)
                     self.info.configure(state=tk.DISABLED)
             print(f"Packet selected: {self.packet_selected}")
+
+    def on_launch_switch(self):
+        state = self.launch_switch.get()
+        if state == 1:
+            print("Switch is On")
+            self.listbox.delete(0, tk.END)
+            self.packet_list.delete(0, tk.END)
+            self.packet_manager.reset()
+            self.packet_selected = None
+            self.last_packet_selected = None
+            self.sample_selected = None
+            self.last_sample_selected = None
+            self.packet_manager.is_enabled = True
+            self.info.configure(state=tk.NORMAL)
+            self.info.delete(1.0, tk.END)
+            self.info.configure(state=tk.DISABLED)
+            self.packet_manager.is_enabled = True
+            self.start_packet_capture()
+        else:
+            print("Switch is Off")
+            self.packet_manager.is_enabled = False
+
 
 
     def start(self):
@@ -157,7 +187,7 @@ class MeanSharkFramework:
         self.health_percentage = ctk.CTkLabel(master=self.center_frame,
                                               text=str(self.network_health.get() * 100) + "%", font=("Roboto", 16))
         self.health_percentage.pack(side="left", padx=10, pady=10, expand=True)
-        self.launch_switch = ctk.CTkSwitch(master=self.header_frame, text="Live capture", font=("Roboto", 16))
+        self.launch_switch = ctk.CTkSwitch(master=self.header_frame, text="Live capture", font=("Roboto", 16),command=self.on_launch_switch)
         self.launch_switch.pack(side="right", padx=10, pady=10)
 
         self.packets_frame = ctk.CTkFrame(self.root)
@@ -199,10 +229,10 @@ class MeanSharkFramework:
         return self.packet_list
 
     def start_packet_capture(self):
-        thread_sniff = threading.Thread(target=scapy.sniff,
+        self.thread_sniff = threading.Thread(target=scapy.sniff,
                                         kwargs={"prn": self.packet_manager.packet_thread, "iface": 'Wi-Fi'},
                                         daemon=True)
-        thread_sniff.start()
+        self.thread_sniff.start()
 
 
 if __name__ == "__main__":

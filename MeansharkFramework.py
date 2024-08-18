@@ -96,6 +96,10 @@ class MeanSharkFramework:
         self.sample_selected = None
         self.last_packet_selected = None
         self.packet_selected = None
+        self.interfaces = []
+        for a in psutil.net_if_addrs():
+            self.interfaces.append(a)
+        self.interface_selected = self.interfaces[0]
         self.start_packet_capture()
 
 
@@ -145,9 +149,12 @@ class MeanSharkFramework:
             self.info.delete(1.0, tk.END)
             self.info.configure(state=tk.DISABLED)
             self.packet_manager.is_enabled = True
+            self.interface_selector.configure(state=tk.DISABLED)
+            self.interface_selected = str(self.interface_selector.get())
             self.start_packet_capture()
         else:
             print("Switch is Off")
+            self.interface_selector.configure(state=tk.NORMAL)
             self.packet_manager.is_enabled = False
 
 
@@ -168,11 +175,9 @@ class MeanSharkFramework:
         self.root.config(menu=self.menu)
         self.header_frame = ctk.CTkFrame(self.root)
         self.header_frame.pack(side=ctk.TOP, fill="both", padx=10, pady=10)
-        self.interface = []
-        for a in psutil.net_if_addrs():
-            self.interface.append(a)
-        self.interface_selector = ctk.CTkOptionMenu(master=self.header_frame, values=self.interface,
-                                                    dropdown_font=("Roboto", 14), font=("Roboto", 14))
+
+        self.interface_selector = ctk.CTkOptionMenu(master=self.header_frame, values=self.interfaces,
+                                                    dropdown_font=("Roboto", 14), font=("Roboto", 14), state=tk.DISABLED)
         self.interface_selector.pack(side="left", padx=10, pady=10)
 
         self.center_frame = ctk.CTkFrame(self.header_frame)
@@ -189,6 +194,7 @@ class MeanSharkFramework:
         self.health_percentage.pack(side="left", padx=10, pady=10, expand=True)
         self.launch_switch = ctk.CTkSwitch(master=self.header_frame, text="Live capture", font=("Roboto", 16),command=self.on_launch_switch)
         self.launch_switch.pack(side="right", padx=10, pady=10)
+        self.launch_switch.select()
 
         self.packets_frame = ctk.CTkFrame(self.root)
         self.packet_list = self.create_packet_listbox()
@@ -230,7 +236,7 @@ class MeanSharkFramework:
 
     def start_packet_capture(self):
         self.thread_sniff = threading.Thread(target=scapy.sniff,
-                                        kwargs={"prn": self.packet_manager.packet_thread, "iface": 'Wi-Fi'},
+                                        kwargs={"prn": self.packet_manager.packet_thread, "iface": str(self.interface_selected)},
                                         daemon=True)
         self.thread_sniff.start()
 

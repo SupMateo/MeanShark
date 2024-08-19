@@ -37,14 +37,17 @@ class ModelManager:
 
 
 class PacketManager:
-    def __init__(self, model_manager, listbox):
+    def __init__(self, model_manager, listbox, framework):
+        self.framework = framework
         self.packet_list = []
         self.current_sample = []
         self.sample_index = 0
         self.model_manager = model_manager
         self.listbox = listbox
         self.lock = threading.Lock()
+        self.network_health = 1.0
         self.is_enabled = True
+        self.nbr_of_malicious_sample = 0
 
     def process_current_sample(self):
         if len(self.current_sample) >= 200:
@@ -63,11 +66,15 @@ class PacketManager:
 
             self.listbox.insert(self.sample_index, f"Sample {self.sample_index + 1}")
 
-            # Cannot use itemconfig with customtkinter; need alternative visual cue
             if result == 1:
-                self.listbox.itemconfig(self.sample_index, {'bg': '#825428', 'fg': 'white'})  # Needs alternative
+                self.listbox.itemconfig(self.sample_index, {'bg': '#825428', 'fg': 'white'})
+                self.nbr_of_malicious_sample += 1
             else:
-                self.listbox.itemconfig(self.sample_index, {'bg': '#252526', 'fg': 'white'})  # Needs alternative
+                self.listbox.itemconfig(self.sample_index, {'bg': '#252526', 'fg': 'white'})
+
+            self.network_health = 1 - (self.nbr_of_malicious_sample / (self.sample_index + 1))
+            self.framework.network_health.set(self.network_health)
+            self.framework.health_percentage.configure(text=str(round(self.framework.network_health.get() * 100,1)) + "%")
 
             self.current_sample = []
             self.sample_index += 1
@@ -85,13 +92,14 @@ class PacketManager:
                 self.process_current_sample()
 
 
+
 class MeanSharkFramework:
     def __init__(self, root):
         self.root = root
         self.model_manager = ModelManager(input_size=46, hidden_size=70, output_size=2)
         self.side_frame = ctk.CTkFrame(self.root)
         self.upper_side_frame = ctk.CTkFrame(self.side_frame)
-        self.packet_manager = PacketManager(self.model_manager, self.create_listbox())
+        self.packet_manager = PacketManager(self.model_manager, self.create_listbox(),self)
         self.last_sample_selected = None
         self.sample_selected = None
         self.last_packet_selected = None
@@ -219,7 +227,6 @@ class MeanSharkFramework:
         self.listbox = tk.Listbox(self.upper_side_frame, bg="#252526", relief="flat", selectmode=tk.SINGLE)
         self.listbox.pack(side="left", fill="both", padx=10, pady=10, expand=True)
 
-        # Bind the listbox click event to the on_listbox_click method
         self.listbox.bind("<ButtonRelease-1>", self.on_listbox_click)
 
         return self.listbox
@@ -228,7 +235,6 @@ class MeanSharkFramework:
         self.packet_list = tk.Listbox(self.packets_frame, bg="#252526", relief="flat", selectmode=tk.SINGLE)
         self.packet_list.pack(side="left", fill="both", padx=10, pady=10, expand=True)
 
-        # Bind the packet listbox click event to the on_packet_listbox_click method
         print("packet list initialized")
         self.packet_list.bind("<ButtonRelease-1>", self.on_packet_listbox_click)
 

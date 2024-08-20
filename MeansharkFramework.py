@@ -31,8 +31,8 @@ class ModelManager:
 
     def predict(self, sample, x_stats):
         with torch.no_grad():
-            sample_tensor = torch.tensor(sample, dtype=torch.float32)
-            x_stats_tensor = torch.tensor(x_stats, dtype=torch.float32)
+            sample_tensor = sample.clone().detach().requires_grad_(True)
+            x_stats_tensor = x_stats.clone().detach().requires_grad_(True)
             prediction = self.model(sample_tensor, x_stats_tensor)
             return prediction.argmax().item()
 

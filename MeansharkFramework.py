@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import tkinter as tk
+from tkinter import filedialog
 from ui import customMenu
 import scapy.all as scapy
 import torch
@@ -111,6 +112,16 @@ class MeanSharkFramework:
         self.start_packet_capture()
 
 
+    def save_capture(self):
+        file_destination = filedialog.asksaveasfilename(initialdir=os.getcwd(), defaultextension=".pcap",
+                                                 filetypes=[("PCAPNG files", "*.pcapng"),("PCAP files", "*.pcap"),
+                                                            ("All files", "*.*")], title="Save Capture as pcap")
+        if file_destination:
+            scapy.wrpcap(file_destination, self.packet_manager.packet_list)
+            print(f"Packets saved to {file_destination}")
+        else:
+            print("No file selected. The capture was not saved.")
+
     def on_listbox_click(self, event):
         selection = self.listbox.curselection()
         if selection:
@@ -173,8 +184,8 @@ class MeanSharkFramework:
     def define_elements(self):
         self.menu = customMenu.Menu(root)
         file_menu = self.menu.menu_bar(text=" File ", tearoff=0, relief="flat")
-        file_menu.add_command(label="New")
-        file_menu.add_command(label="Open")
+        file_menu.add_command(label="Save capture", command=self.save_capture)
+        file_menu.add_command(label="Save sample")
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=root.quit)
         tools_menu = self.menu.menu_bar(text=" Tools ", tearoff=0, relief="flat")

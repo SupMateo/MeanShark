@@ -10,6 +10,7 @@ import psutil
 import os
 from neural_network.processing import Processor
 from neural_network.extracting import DataExtractor
+from neural_network.utils import Information
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("dark-blue")
@@ -96,6 +97,7 @@ class PacketManager:
 
 class MeanSharkFramework:
     def __init__(self, root):
+        self.information = Information()
         self.root = root
         self.model_manager = ModelManager(input_size=46, hidden_size=70, output_size=2)
         self.side_frame = ctk.CTkFrame(self.root)
@@ -138,7 +140,6 @@ class MeanSharkFramework:
 
     def on_packet_listbox_click(self, event):
         selection = self.packet_list.curselection()
-        print("clicked")
         if selection:
             self.packet_selected = selection[0]
             if self.packet_selected != self.last_packet_selected:
@@ -179,7 +180,32 @@ class MeanSharkFramework:
 
 
     def start(self):
+        self.root.after(100, lambda: self.terminal_input.focus())
         self.root.mainloop()
+
+    def execute_command(self, event=None):
+        command = self.terminal_input.get().strip()
+        self.terminal_input.delete(0, tk.END)
+
+        self.append_output(f"> {command}\n")
+
+        if command == "help":
+            output = "Available commands: help, clear, info, exit"
+        elif command == "clear":
+            self.terminal_output.configure(state=tk.NORMAL)
+            self.terminal_output.delete(1.0, tk.END)
+            self.terminal_output.configure(state=tk.DISABLED)
+            return
+        elif command == "info":
+            output = ("MeanShark Framework - version : " + self.information.info['version'] + " released on " +
+                      self.information.info['release_date'] + " - Developped by SupMateo : "
+                                                              "https://github.com/SupMateo/MeanShark")
+        elif command == "exit":
+            self.root.quit()
+            return
+        else:
+            output = f"Command not recognized: {command}"
+        self.append_output(f"{output}\n")
 
     def define_elements(self):
         self.menu = customMenu.Menu(root)
@@ -192,11 +218,13 @@ class MeanSharkFramework:
         tools_menu.add_command(label="New")
         tools_menu.add_command(label="Open")
         self.root.config(menu=self.menu)
+
         self.header_frame = ctk.CTkFrame(self.root)
         self.header_frame.pack(side=ctk.TOP, fill="both", padx=10, pady=10)
 
         self.interface_selector = ctk.CTkOptionMenu(master=self.header_frame, values=self.interfaces,
-                                                    dropdown_font=("Roboto", 14), font=("Roboto", 14), state=tk.DISABLED)
+                                                    dropdown_font=("Roboto", 14), font=("Roboto", 14),
+                                                    state=tk.DISABLED)
         self.interface_selector.pack(side="left", padx=10, pady=10)
 
         self.center_frame = ctk.CTkFrame(self.header_frame)
@@ -211,7 +239,9 @@ class MeanSharkFramework:
         self.health_percentage = ctk.CTkLabel(master=self.center_frame,
                                               text=str(self.network_health.get() * 100) + "%", font=("Roboto", 16))
         self.health_percentage.pack(side="left", padx=10, pady=10, expand=True)
-        self.launch_switch = ctk.CTkSwitch(master=self.header_frame, text="Live capture", font=("Roboto", 16),command=self.on_launch_switch)
+
+        self.launch_switch = ctk.CTkSwitch(master=self.header_frame, text="Live capture", font=("Roboto", 16),
+                                           command=self.on_launch_switch)
         self.launch_switch.pack(side="right", padx=10, pady=10)
         self.launch_switch.select()
 
@@ -231,8 +261,41 @@ class MeanSharkFramework:
         self.info = ctk.CTkTextbox(master=self.upper_side_frame)
         self.info.pack(side="left", fill="both", padx=10, pady=10, expand=True)
 
-        self.terminal = ctk.CTkTextbox(master=self.side_frame)
-        self.terminal.pack(fill="both", padx=10, pady=10, expand=True)
+        self.terminal_output = ctk.CTkTextbox(master=self.side_frame,font=("Consolas", 14))
+        self.terminal_output.pack(fill="both", padx=10, pady=5, expand=True)
+        self.terminal_output.configure(state=tk.DISABLED)
+
+        self.terminal_input = ctk.CTkEntry(master=self.side_frame,font=("Consolas", 14))
+        self.terminal_input.pack(fill="x", padx=10, pady=5)
+        self.terminal_input.bind("<Return>", self.execute_command)
+        self.append_output("█▀▄▀█ ▄███▄     ██    ▄      ▄▄▄▄▄    ▄  █ ██   █▄▄▄▄ █  █▀\n")
+        self.append_output("█ █ █ █▀   ▀   █ █     █    █     ▀▄ █   █ █ █  █  ▄▀ █▄█\n")
+        self.append_output("█ ▀ █ ██▄▄    █▄▄█ ██   █ ▄  ▀▀▀▀▄   ██▀▀█ █▄▄█ █▀▀▌  █▀▄\n")
+        self.append_output("█   █ █▄   ▄▀ █  █ █ █  █  ▀▄▄▄▄▀    █   █ █  █ █  █  █  █\n")
+        self.append_output(" █     ▀███▀  █    █  █ █  ▄▄           █     █   █     █\n")
+        self.append_output("  ▀            █   █   ██  █ ▀▄        ▀     █   ▀     ▀\n")
+        self.append_output("                ▀          █   ▀▄           ▀\n")
+        self.append_output("▄▄▄▄▄▄▄▀▀▀▄▄▄▄▄▄▄▄▄▀▀▄▄▄▀▀ █     ▀▄ ▀▀▄▄▄▄▀▀▄▄▄▄▄▄▄▀▀▀▄▄▄▄▄\n")
+        self.append_output("                     ▄    ▄         ▄    ▄\n")
+        self.append_output("                     ▀      ▀▀  ▀▀▀      ▀ \n")
+        self.append_output("                        ▀   ▄▄▄  ▄    ▀ \n")
+        self.append_output("\n")
+        self.append_output("                          Framework                        \n")
+        self.append_output("\n")
+        self.append_output("    Developped by SupMateo on GitHub\n")
+        self.append_output("    https://github.com/SupMateo/MeanShark\n")
+        self.append_output("    Version {version}, {release_date}\n".format(version=self.information.info['version'],release_date=self.information.info['release_date']))
+        self.append_output("▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄")
+        self.append_output("\n")
+        self.append_output("\n")
+        self.append_output("MeanShark Framework Terminal (type 'help' for available commands)\n")
+        self.terminal_input.focus()
+
+    def append_output(self, text):
+        self.terminal_output.configure(state=tk.NORMAL)
+        self.terminal_output.insert(tk.END, text)
+        self.terminal_output.configure(state=tk.DISABLED)
+        self.terminal_output.see(tk.END)
 
     def create_listbox(self):
         self.listbox = tk.Listbox(self.upper_side_frame, bg="#252526", relief="flat", selectmode=tk.SINGLE)

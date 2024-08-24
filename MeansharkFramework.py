@@ -7,6 +7,7 @@ import torch
 import threading
 from neural_network.model import MeanSharkNet
 import psutil
+import shodan
 import os
 from neural_network.processing import Processor
 from neural_network.extracting import DataExtractor
@@ -98,6 +99,12 @@ class PacketManager:
 class MeanSharkFramework:
     def __init__(self, root):
         self.information = Information()
+        self.API_KEY = os.getenv('SHODAN_API_KEY')
+        print(self.API_KEY)
+        if self.API_KEY is None:
+            raise ValueError("the environment variable SHODAN_API_KEY is not set.")
+
+        self.shodan_api = shodan.Shodan(self.API_KEY)
         self.root = root
         self.model_manager = ModelManager(input_size=46, hidden_size=70, output_size=2)
         self.side_frame = ctk.CTkFrame(self.root)
@@ -185,22 +192,34 @@ class MeanSharkFramework:
 
     def execute_command(self, event=None):
         command = self.terminal_input.get().strip()
+        command_parser = command.split(" ")
         self.terminal_input.delete(0, tk.END)
 
         self.append_output(f"> {command}\n")
 
-        if command == "help":
+        if command_parser[0] == "help":
             output = "Available commands: help, clear, info, exit"
-        elif command == "clear":
+        elif command_parser[0] == "clear":
             self.terminal_output.configure(state=tk.NORMAL)
             self.terminal_output.delete(1.0, tk.END)
             self.terminal_output.configure(state=tk.DISABLED)
             return
-        elif command == "info":
+        elif command_parser[0] == "shodan":
+            if len(command_parser) != 2:
+                output = "Invalid shodan command"
+            else:
+                shodan_query = command_parser[1]
+                print(shodan_query)
+                if shodan_query == "info":
+                    output = self.shodan_api.info()
+                else:
+                    shodan_results = self.shodan_api.scan(shodan_query)
+                    output = "Shodan results: \n" + str(shodan_results)
+        elif command_parser[0] == "info":
             output = ("MeanShark Framework - version : " + self.information.info['version'] + " released on " +
                       self.information.info['release_date'] + " - Developped by SupMateo : "
                                                               "https://github.com/SupMateo/MeanShark")
-        elif command == "exit":
+        elif command_parser[0] == "exit":
             self.root.quit()
             return
         else:

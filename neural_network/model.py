@@ -1,14 +1,16 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
+
 
 class MeanSharkNet(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size, num_heads):
         super(MeanSharkNet, self).__init__()
 
         self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
-        self.fc1 = nn.Linear(hidden_size+3, hidden_size)
+
+        self.attention = nn.MultiheadAttention(embed_dim=hidden_size, num_heads=num_heads, batch_first=True)
+
+        self.fc1 = nn.Linear(hidden_size + 3, hidden_size)
         self.relu1 = nn.ReLU()
         self.bn1 = nn.BatchNorm1d(hidden_size)
         self.relu2 = nn.ReLU()
@@ -16,7 +18,10 @@ class MeanSharkNet(nn.Module):
 
     def forward(self, x_packets, x_stats):
         lstm_out, (hn, cn) = self.lstm(x_packets)
-        lstm_out = hn[-1]
+
+        attention_out, _ = self.attention(lstm_out, lstm_out, lstm_out)
+
+        lstm_out = attention_out[:, -1, :]
 
         combined = torch.cat((lstm_out, x_stats), dim=1)
 

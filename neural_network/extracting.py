@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from scapy.all import *
 from scapy.layers.l2 import Ether
-import utils
+
 
 dirname = os.getcwd()
 data_path = os.path.join(dirname, 'Dataset')
@@ -193,27 +193,30 @@ class DataPacket:
 
 
 class DataExtractor:
-    def __init__(self, raw_capture):
-        try:
-            cap_path = os.path.join(data_path, raw_capture)
-            logging.info("capture found at " + cap_path + ". This may take a while to load it...")
-        except:
+    def __init__(self, raw_capture=None):
+        if raw_capture is not None:
             try:
-                cap_path = raw_capture
-                logging.info("capture found at " + cap_path+". This may take a while to load it...")
+                cap_path = os.path.join(data_path, raw_capture)
+                logging.info("capture found at " + cap_path + ". This may take a while to load it...")
             except:
-                logging.error("capture could not be found")
-                exit(1)
-        if raw_capture.split('.')[-1] in ['pcap', 'pcapng']:
-            try:
-                self.raw_capture = rdpcap(cap_path)
-                logging.info(f"{cap_path} loaded successfully !")
-            except Exception as e:
-                logging.error("capture could not be loaded")
+                try:
+                    cap_path = raw_capture
+                    logging.info("capture found at " + cap_path+". This may take a while to load it...")
+                except:
+                    logging.error("capture could not be found")
+                    exit(1)
+            if raw_capture.split('.')[-1] in ['pcap', 'pcapng']:
+                try:
+                    self.raw_capture = rdpcap(cap_path)
+                    logging.info(f"{cap_path} loaded successfully !")
+                except Exception as e:
+                    logging.error("capture could not be loaded")
+                    exit(1)
+            else:
+                logging.error('Capture must be pcap or pcapng file.')
                 exit(1)
         else:
-            logging.error('Capture must be pcap or pcapng file.')
-            exit(1)
+            logging.warning("no file loaded, this extractor is for production")
 
     @staticmethod
     def make_packet_obj(simple_packet, nbr):

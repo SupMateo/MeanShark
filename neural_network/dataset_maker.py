@@ -144,6 +144,7 @@ class DatasetMaker:
 
                 for i, sample in enumerate(samples):
                     data_sample = extractor.extract_data(split_capture=sample)
+                    data_sample.randomize_ips()
                     processor = Processor(data_sample)
                     processed_sample = processor.output
                     sample_array = processed_sample.to_array()

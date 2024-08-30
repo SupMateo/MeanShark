@@ -4,6 +4,8 @@ from datetime import datetime
 from scapy.all import *
 from scapy.layers.l2 import Ether
 
+import random
+
 
 dirname = os.getcwd()
 data_path = os.path.join(dirname, 'Dataset')
@@ -81,6 +83,7 @@ class DataCapture:
 
         self.stats = Statistics(self.capture_list)
         self.size = len(self.capture_list)
+        self.ip_mapping = {}
 
     def __iter__(self):
         return iter(self.capture_list)
@@ -140,6 +143,23 @@ class DataCapture:
             self.print_field(field_name, field_value)
         print("\033[94m---------------------------------------------------\033[0m")
         print()
+
+    def randomize_ips(self):
+        def generate_anonymized_ip(ip):
+            ip_parts = ip.split('.')
+            first_octet = ip_parts[0]
+            return f"{first_octet}.{random.randint(1, 254)}.{random.randint(1, 254)}.{random.randint(1, 254)}"
+
+        for packet in self.capture_list:
+            if packet.ip_src:
+                if packet.ip_src not in self.ip_mapping:
+                    self.ip_mapping[packet.ip_src] = generate_anonymized_ip(packet.ip_src)
+                packet.ip_src = self.ip_mapping[packet.ip_src]
+
+            if packet.ip_dst:
+                if packet.ip_dst not in self.ip_mapping:
+                    self.ip_mapping[packet.ip_dst] = generate_anonymized_ip(packet.ip_dst)
+                packet.ip_dst = self.ip_mapping[packet.ip_dst]
 
 
 class DataPacket:

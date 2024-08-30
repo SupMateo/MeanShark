@@ -32,17 +32,17 @@ class Trainer:
         self.batch_size = 75
         self.input_size = mean_shark_dataset.features.shape[2]
         self.hidden_size = 70
-        self.attention_head = 2
+        self.attention_head = 10
         self.output_size = len(np.unique(mean_shark_dataset.labels))
         self.model = MeanSharkNet(self.input_size, self.hidden_size,self.output_size,self.attention_head).to(device)
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.000005)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00001)
         self.train_losses = []
         self.val_losses = []
         self.train_accuracies = []
         self.val_accuracies = []
 
-    def train(self, num_epochs=420):
+    def train(self, num_epochs=350):
         train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False)
         logging.info("Training start")

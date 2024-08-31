@@ -36,7 +36,7 @@ class Trainer:
         self.output_size = len(np.unique(mean_shark_dataset.labels))
         self.model = MeanSharkNet(self.input_size, self.hidden_size,self.output_size,self.attention_head).to(device)
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00001)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00002)
         self.train_losses = []
         self.val_losses = []
         self.train_accuracies = []

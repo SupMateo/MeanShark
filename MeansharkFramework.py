@@ -27,7 +27,7 @@ class ModelManager:
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = MeanSharkNet(self.input_size, self.hidden_size, self.output_size).to(self.device)
+        self.model = MeanSharkNet(self.input_size, self.hidden_size, self.output_size,10).to(self.device)
         self.model.load_state_dict(torch.load(os.path.join(os.getcwd(), "neural_network/model.pt"), weights_only=True))
         self.model.eval()
 
@@ -60,7 +60,7 @@ class PacketManager:
 
             x_features = processor.output.to_array()
             x_stats = [processor.output.bitrate_normalized, processor.output.ip_amount_normalized,
-                       processor.output.port_amount_normalized]
+                       processor.output.port_amount_normalized, processor.output.total_time_normalized]
 
             sample_tensor = torch.tensor(x_features, dtype=torch.float32).unsqueeze(0).to(self.model_manager.device)
             x_stats_tensor = torch.tensor(x_stats, dtype=torch.float32).unsqueeze(0).to(self.model_manager.device)

@@ -166,10 +166,11 @@ class ProcessedCapture:
         self.bitrate_normalized = data_capture.stats.bitrate / 100000000
         self.ip_amount_normalized = (data_capture.stats.ip_amount - 2) / (len(data_capture) * 2 - 2)
         self.port_amount_normalized = data_capture.stats.port_amount - 2 / (len(data_capture) * 2 - 2)
-
+        self.total_time_normalized = data_capture.stats.total_time/60
         assert not math.isnan(self.bitrate_normalized), "bitrate_normalized is NaN"
         assert not math.isnan(self.ip_amount_normalized), "ip_amount_normalized is NaN"
         assert not math.isnan(self.port_amount_normalized), "port_amount_normalized is NaN"
+        assert not math.isnan(self.total_time_normalized), "total_time_normalized is NaN"
 
 
     def __iter__(self):

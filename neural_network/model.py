@@ -10,7 +10,7 @@ class MeanSharkNet(nn.Module):
 
         self.attention = nn.MultiheadAttention(embed_dim=hidden_size, num_heads=num_heads, batch_first=True)
 
-        self.fc1 = nn.Linear(hidden_size + 3, hidden_size)
+        self.fc1 = nn.Linear(hidden_size + 4, hidden_size)
         self.relu1 = nn.ReLU()
         self.bn1 = nn.BatchNorm1d(hidden_size)
         self.relu2 = nn.ReLU()

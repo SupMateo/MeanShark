@@ -121,7 +121,10 @@ class DatasetMaker:
                         processed_sample.ip_amount_normalized = 0
                     if processed_sample.port_amount_normalized is None or math.isnan(processed_sample.port_amount_normalized):
                         processed_sample.port_amount_normalized = 0
-                    sample_stats = [processed_sample.bitrate_normalized, processed_sample.ip_amount_normalized, processed_sample.port_amount_normalized]
+                    if processed_sample.total_time_normalized is None or math.isnan(processed_sample.total_time_normalized):
+                        processed_sample.total_time_normalized = 0
+                    sample_stats = [processed_sample.bitrate_normalized, processed_sample.ip_amount_normalized,
+                                    processed_sample.port_amount_normalized, processed_sample.total_time_normalized]
                     assert not any(math.isnan(value) for value in sample_stats), "sample_stats contain NaN"
                     raw_stats.append(sample_stats)
                     raw_labels.append(1)
@@ -157,8 +160,11 @@ class DatasetMaker:
                     if processed_sample.port_amount_normalized is None or math.isnan(
                             processed_sample.port_amount_normalized):
                         processed_sample.port_amount_normalized = 0
+                    if processed_sample.total_time_normalized is None or math.isnan(
+                            processed_sample.total_time_normalized):
+                        processed_sample.total_time_normalized = 0
                     sample_stats = [processed_sample.bitrate_normalized, processed_sample.ip_amount_normalized,
-                                    processed_sample.port_amount_normalized]
+                                    processed_sample.port_amount_normalized,processed_sample.total_time_normalized]
                     assert not any(math.isnan(value) for value in sample_stats), "sample_stats contain NaN"
                     raw_stats.append(sample_stats)
                     raw_labels.append(0)

@@ -17,6 +17,7 @@ class Statistics:
         self.bitrate_normalized = None
         self.ip_amount_normalized = None
         self.port_amount_normalized = None
+        self.total_time_normalized = None
 
     @property
     def ip_amount(self):
@@ -29,6 +30,10 @@ class Statistics:
     @property
     def bitrate(self):
         return self.calculate_bitrate()
+
+    @property
+    def total_time(self):
+        return self.calculate_total_time()
 
     def calculate_ip_amount(self):
         ip_list = []
@@ -72,6 +77,20 @@ class Statistics:
         if total_time <= 0:
             total_time = -total_time
         return total_size / total_time if total_time != 0 else 0
+
+    def calculate_total_time(self):
+        first_time = self.capture_list[0].time
+        last_time = self.capture_list[-1].time
+        times = [first_time, last_time]
+        time_objs = []
+        for timers in times:
+            time_objs.append(datetime.strptime(str(timers), "%H:%M:%S:%f"))
+        times.clear()
+        for time_obj in time_objs:
+            times.append(time_obj.hour * 3600 + time_obj.minute * 60 + time_obj.second + time_obj.microsecond / 1e6)
+        total_time = times[-1] - times[0]
+        return total_time
+
 
 class DataCapture:
     def __init__(self, list_of_data_packet=None):
@@ -136,6 +155,7 @@ class DataCapture:
             ("BITRATE (Bps)", self.stats.bitrate),
             ("AMOUNT OF IP", self.stats.ip_amount),
             ("AMOUNT OF PORT", self.stats.port_amount),
+            ("TOTAL TIME",self.stats.total_time)
         ]
         print("\033[94mSTATISTICS : ")
         print("\033[94m---------------------------------------------------")

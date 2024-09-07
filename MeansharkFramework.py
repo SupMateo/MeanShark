@@ -132,10 +132,28 @@ class MeanSharkFramework:
         else:
             print("No file selected. The capture was not saved.")
 
+    def save_sample(self):
+        if self.sample_selected is None:
+            print("No sample selected. Please select a sample first.")
+            return
+
+        file_destination = filedialog.asksaveasfilename(initialdir=os.getcwd(), defaultextension=".pcap",
+                                                        filetypes=[("PCAPNG files", "*.pcapng"),
+                                                                   ("PCAP files", "*.pcap"),
+                                                                   ("All files", "*.*")], title="Save Capture as pcap")
+        if file_destination:
+            start_index = self.sample_selected * 200
+            end_index = start_index + 200
+            scapy.wrpcap(file_destination, self.packet_manager.packet_list[start_index:end_index])
+            print(f"Sample saved to {file_destination}")
+        else:
+            print("No file selected. The capture was not saved.")
+
     def on_listbox_click(self, event):
         selection = self.listbox.curselection()
         if selection:
             self.sample_selected = selection[0]
+            print(type(self.sample_selected))
             if self.sample_selected != self.last_sample_selected:
                 self.packet_list.delete(0, tk.END)
                 for i in range(200):
@@ -191,7 +209,7 @@ class MeanSharkFramework:
         self.root.after(100, lambda: self.terminal_input.focus())
         self.root.mainloop()
 
-    def execute_command(self, event=None):
+    def execute_command(self):
         command = self.terminal_input.get().strip()
         command_parser = command.split(" ")
         self.terminal_input.delete(0, tk.END)
@@ -250,7 +268,7 @@ class MeanSharkFramework:
         self.menu = customMenu.Menu(root)
         file_menu = self.menu.menu_bar(text=" File ", tearoff=0, relief="flat")
         file_menu.add_command(label="Save capture", command=self.save_capture)
-        file_menu.add_command(label="Save sample")
+        file_menu.add_command(label="Save sample", command=self.save_sample)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=root.quit)
         tools_menu = self.menu.menu_bar(text=" Tools ", tearoff=0, relief="flat")

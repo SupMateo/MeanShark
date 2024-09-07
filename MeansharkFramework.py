@@ -8,6 +8,7 @@ import threading
 from neural_network.model import MeanSharkNet
 import psutil
 import shodan
+import json
 import os
 from neural_network.processing import Processor
 from neural_network.extracting import DataExtractor
@@ -198,23 +199,42 @@ class MeanSharkFramework:
         self.append_output(f"> {command}\n")
 
         if command_parser[0] == "help":
-            output = "Available commands: help, clear, info, exit"
+            output = """
+            Available commands: 
+                help
+                clear
+                info
+                shodan arg1 arg2
+                    arg1 = command (info, host, scan)
+                    arg2 = query
+                exit
+            """
         elif command_parser[0] == "clear":
             self.terminal_output.configure(state=tk.NORMAL)
             self.terminal_output.delete(1.0, tk.END)
             self.terminal_output.configure(state=tk.DISABLED)
             return
         elif command_parser[0] == "shodan":
-            if len(command_parser) != 2:
+            if len(command_parser) < 2:
                 output = "Invalid shodan command"
             else:
-                shodan_query = command_parser[1]
-                print(shodan_query)
-                if shodan_query == "info":
-                    output = self.shodan_api.info()
-                else:
-                    shodan_results = self.shodan_api.scan(shodan_query)
-                    output = "Shodan results: \n" + str(shodan_results)
+                shodan_command = command_parser[1]
+                if shodan_command == "info":
+                    output = json.dumps(self.shodan_api.info(),indent=4)
+                elif shodan_command == "host":
+                    try:
+                        shodan_results = self.shodan_api.host(command_parser[2])
+                        shodan_results = json.dumps(shodan_results, indent=4)
+                        output = "Shodan results: \n" + str(shodan_results)
+                    except Exception as e:
+                        output = "Shodan error: " + str(e)
+                elif shodan_command == "scan":
+                    try:
+                        shodan_results = self.shodan_api.scan(command_parser[2])
+                        shodan_results = json.dumps(shodan_results, indent=4)
+                        output = "Shodan results: \n" + str(shodan_results)
+                    except Exception as e:
+                        output = "Shodan error: " + str(e)
         elif command_parser[0] == "info":
             output = ("MeanShark Framework - version : " + self.information.info['version'] + " released on " +
                       self.information.info['release_date'] + " - Developped by SupMateo : "

@@ -1,0 +1,8 @@
+psutil
+customtkinter
+scapy
+shodan
+logging
+numpy
+torch
+scikit-learn

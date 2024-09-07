@@ -18,7 +18,7 @@ MeanShark is an advanced packet sniffing and network analysis tool with integrat
 - Python 3.8+
 - Wireshark or a similar PCAP reader
 - A valid [Shodan API key](https://account.shodan.io/)
-- CUDA (optional, for GPU support with PyTorch)
+- CUDA (optional, for GPU support with PyTorch) Follow this link for a complete guide : https://pytorch.org/get-started/locally/
 
 ### Required Libraries
 

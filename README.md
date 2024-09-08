@@ -70,5 +70,11 @@ python MeanShark_training_tool.py -t
 ## Neural Network Model
 The `MeanSharkNet` is a neural network model designed to analyze network traffic data. It implements linear and non linear layers. An auto-attentive layer and an LSTM layer complete the model to make it more efficient and accurate. It takes extracted features from network packets and classifies them as malicious or benign. The model is pre-trained and can be customized.
 
+## Dataset
+The `MeanSharkNet` model has been train with different sources of network traffic. the sources are :
+- [Intrusion detection evaluation dataset (CIC-IDS2017)](https://www.unb.ca/cic/datasets/ids-2017.html)
+- Captures from https://www.malware-traffic-analysis.net/
+- Personal captures
+
 ## Author
 Developed by SupMateo: [GitHub](https://github.com/SupMateo/)

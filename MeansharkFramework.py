@@ -209,6 +209,36 @@ class MeanSharkFramework:
         self.root.after(100, lambda: self.terminal_input.focus())
         self.root.mainloop()
 
+    def post_mortem_analyze(self):
+        """Post-Mortem analysis of a PCAP file"""
+        file_path = filedialog.askopenfilename(initialdir=os.getcwd(), title="Select a PCAP file",
+                                               filetypes=[("PCAPNG files", "*.pcapng"), ("PCAP files", "*.pcap"),
+                                                          ("All files", "*.*")])
+
+        if file_path:
+            print(f"Loading file: {file_path}")
+            packets = scapy.rdpcap(file_path)
+            self.packet_manager.reset()
+            self.listbox.delete(0, tk.END)
+            self.packet_list.delete(0, tk.END)
+            self.packet_selected = None
+            self.last_packet_selected = None
+            self.sample_selected = None
+            self.last_sample_selected = None
+            self.packet_manager.is_enabled = True
+            self.info.configure(state=tk.NORMAL)
+            self.info.delete(1.0, tk.END)
+            self.info.configure(state=tk.DISABLED)
+            self.launch_switch.deselect()
+            self.interface_selector.configure(state=tk.NORMAL)
+
+            for packet in packets:
+                self.packet_manager.packet_thread(packet)
+
+            print("Post-Mortem analysis complete.")
+        else:
+            print("No file selected. Post-mortem analysis aborted.")
+
     def execute_command(self):
         command = self.terminal_input.get().strip()
         command_parser = command.split(" ")
@@ -281,6 +311,8 @@ class MeanSharkFramework:
         file_menu.add_command(label="Save capture", command=self.save_capture)
         file_menu.add_command(label="Save sample", command=self.save_sample)
         file_menu.add_separator()
+        file_menu.add_command(label="Post-Mortem Analysis", command=self.post_mortem_analyze)
+        file_menu.add_separator()
         file_menu.add_command(label="Exit", command=root.quit)
         about_menu = self.menu.menu_bar(text="About", tearoff=0, relief="flat")
         about_menu.add_command(label="Show About", command=self.show_about)
@@ -309,6 +341,7 @@ class MeanSharkFramework:
 
         self.launch_switch = ctk.CTkSwitch(master=self.header_frame, text="Live capture", font=("Roboto", 16),
                                            command=self.on_launch_switch)
+
         self.launch_switch.pack(side="right", padx=10, pady=10)
         self.launch_switch.select()
 

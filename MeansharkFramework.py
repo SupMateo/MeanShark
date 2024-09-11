@@ -264,6 +264,17 @@ class MeanSharkFramework:
             output = f"Command not recognized: {command}"
         self.append_output(f"{output}\n")
 
+    def show_about(self):
+        about = ctk.CTkToplevel()
+        about.title("About")
+        about.geometry("600x100")
+        about.wm_attributes("-topmost", True)
+
+        label_info = ctk.CTkLabel(about, text="MeanShark Framework \n version : " + self.information.info['version'] + " \n released on " +
+                      self.information.info['release_date'] + " \n Developped by SupMateo : "
+                                                              "https://github.com/SupMateo/MeanShark" + "\n License : GPL 2.0")
+        label_info.pack(pady=20)
+
     def define_elements(self):
         self.menu = customMenu.Menu(root)
         file_menu = self.menu.menu_bar(text=" File ", tearoff=0, relief="flat")
@@ -271,9 +282,8 @@ class MeanSharkFramework:
         file_menu.add_command(label="Save sample", command=self.save_sample)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=root.quit)
-        tools_menu = self.menu.menu_bar(text=" Tools ", tearoff=0, relief="flat")
-        tools_menu.add_command(label="New")
-        tools_menu.add_command(label="Open")
+        about_menu = self.menu.menu_bar(text="About", tearoff=0, relief="flat")
+        about_menu.add_command(label="Show About", command=self.show_about)
         self.root.config(menu=self.menu)
 
         self.header_frame = ctk.CTkFrame(self.root)

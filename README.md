@@ -66,6 +66,8 @@ After the data has been added to the dataset, you should train the model with th
 ```bash
 python MeanShark_training_tool.py -t
 ```
+### Raw dataset
+To add data or modify the model, you should download the json file raw-dataset.json following this link https://www.dropbox.com/scl/fo/qs8d9ln2lug9q7ac5ikp3/AA6N31h7RFz3lV89rzrnhAY?rlkey=rc7j7kl1fk495lytk0lsv5tlv&st=fdycey8z&dl=0 and put it in the folder `/neural_network`.
 
 ## Neural Network Model
 The `MeanSharkNet` is a neural network model designed to analyze network traffic data. It implements linear and non linear layers. An auto-attentive layer and an LSTM layer complete the model to make it more efficient and accurate. It takes extracted features from network packets and classifies them as malicious or benign. The model is pre-trained and can be customized.

@@ -23,6 +23,9 @@ root.title("MeanShark")
 
 
 class ModelManager:
+    """
+    Manages the MeanSharkNet model: loading the model, making predictions.
+    """
     def __init__(self, input_size, hidden_size, output_size):
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -33,6 +36,7 @@ class ModelManager:
         self.model.eval()
 
     def predict(self, sample, x_stats):
+        """Predicts the class of a sample using the loaded model."""
         with torch.no_grad():
             sample_tensor = sample.clone().detach().requires_grad_(True)
             x_stats_tensor = x_stats.clone().detach().requires_grad_(True)
@@ -41,6 +45,9 @@ class ModelManager:
 
 
 class PacketManager:
+    """
+    Handles packet processing and maintains the list of packets and samples.
+    """
     def __init__(self, model_manager, listbox, framework):
         self.framework = framework
         self.packet_list = []
@@ -54,6 +61,10 @@ class PacketManager:
         self.nbr_of_malicious_sample = 0
 
     def process_current_sample(self):
+        """
+        Processes the current sample to extract features and make predictions.
+        Updates the listbox and network health display.
+        """
         if len(self.current_sample) >= 200:
             extractor = DataExtractor()
             features = extractor.extract_data(self.current_sample)
@@ -84,11 +95,13 @@ class PacketManager:
             self.sample_index += 1
 
     def reset(self):
+        """Resets the packet list and current sample index."""
         self.packet_list.clear()
         self.current_sample.clear()
         self.sample_index = 0
 
     def packet_thread(self, packet):
+        """thread that handles the incoming packets and append them to the list and processes them."""
         with self.lock:
             if self.is_enabled:
                 self.packet_list.append(packet)
@@ -98,6 +111,9 @@ class PacketManager:
 
 
 class MeanSharkFramework:
+    """
+    The main application framework for managing the GUI, packet capture, and interactions.
+    """
     def __init__(self, root):
         self.information = Information()
         self.API_KEY = os.getenv('SHODAN_API_KEY')
@@ -123,6 +139,7 @@ class MeanSharkFramework:
 
 
     def save_capture(self):
+        """Saves the current packet capture to a file."""
         file_destination = filedialog.asksaveasfilename(initialdir=os.getcwd(), defaultextension=".pcap",
                                                  filetypes=[("PCAPNG files", "*.pcapng"),("PCAP files", "*.pcap"),
                                                             ("All files", "*.*")], title="Save Capture as pcap")
@@ -133,6 +150,7 @@ class MeanSharkFramework:
             print("No file selected. The capture was not saved.")
 
     def save_sample(self):
+        """Saves the selected sample of packets to a file."""
         if self.sample_selected is None:
             print("No sample selected. Please select a sample first.")
             return
@@ -150,6 +168,7 @@ class MeanSharkFramework:
             print("No file selected. The capture was not saved.")
 
     def on_listbox_click(self, event):
+        """Handles click events on the sample listbox to display selected sample's packets."""
         selection = self.listbox.curselection()
         if selection:
             self.sample_selected = selection[0]
@@ -165,6 +184,7 @@ class MeanSharkFramework:
             print(f"Sample selected: {self.sample_selected}")
 
     def on_packet_listbox_click(self, event):
+        """Handles click events on the packet listbox to display details of the selected packet."""
         selection = self.packet_list.curselection()
         if selection:
             self.packet_selected = selection[0]
@@ -180,6 +200,7 @@ class MeanSharkFramework:
             print(f"Packet selected: {self.packet_selected}")
 
     def on_launch_switch(self):
+        """Toggles live capture on or off based on the switch state."""
         state = self.launch_switch.get()
         if state == 1:
             print("Switch is On")
@@ -206,6 +227,7 @@ class MeanSharkFramework:
 
 
     def start(self):
+        """Starts the main GUI event loop."""
         self.root.after(100, lambda: self.terminal_input.focus())
         self.root.mainloop()
 
@@ -240,6 +262,7 @@ class MeanSharkFramework:
             print("No file selected. Post-mortem analysis aborted.")
 
     def execute_command(self):
+        """Executes terminal commands entered by the user."""
         command = self.terminal_input.get().strip()
         command_parser = command.split(" ")
         self.terminal_input.delete(0, tk.END)
@@ -295,6 +318,7 @@ class MeanSharkFramework:
         self.append_output(f"{output}\n")
 
     def show_about(self):
+        """Displays an 'About' window with information."""
         about = ctk.CTkToplevel()
         about.title("About")
         about.geometry("600x100")
@@ -306,6 +330,7 @@ class MeanSharkFramework:
         label_info.pack(pady=20)
 
     def define_elements(self):
+        """Defines and initializes GUI elements and layout."""
         self.menu = customMenu.Menu(root)
         file_menu = self.menu.menu_bar(text=" File ", tearoff=0, relief="flat")
         file_menu.add_command(label="Save capture", command=self.save_capture)
@@ -392,12 +417,14 @@ class MeanSharkFramework:
         self.terminal_input.focus()
 
     def append_output(self, text):
+        """Appends the output to the terminal."""
         self.terminal_output.configure(state=tk.NORMAL)
         self.terminal_output.insert(tk.END, text)
         self.terminal_output.configure(state=tk.DISABLED)
         self.terminal_output.see(tk.END)
 
     def create_listbox(self):
+        """Creates and configures the sample listbox."""
         self.listbox = tk.Listbox(self.upper_side_frame, bg="#252526", relief="flat", selectmode=tk.SINGLE)
         self.listbox.pack(side="left", fill="both", padx=10, pady=10, expand=True)
 
@@ -406,6 +433,7 @@ class MeanSharkFramework:
         return self.listbox
 
     def create_packet_listbox(self):
+        """Creates and configures the packet listbox."""
         self.packet_list = tk.Listbox(self.packets_frame, bg="#252526", relief="flat", selectmode=tk.SINGLE)
         self.packet_list.pack(side="left", fill="both", padx=10, pady=10, expand=True)
 
@@ -415,6 +443,7 @@ class MeanSharkFramework:
         return self.packet_list
 
     def start_packet_capture(self):
+        """Starts packet capture in a separate thread."""
         self.thread_sniff = threading.Thread(target=scapy.sniff,
                                         kwargs={"prn": self.packet_manager.packet_thread, "iface": str(self.interface_selected)},
                                         daemon=True)

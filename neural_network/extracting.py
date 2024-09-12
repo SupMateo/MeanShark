@@ -6,12 +6,15 @@ from scapy.layers.l2 import Ether
 
 import random
 
-
+# Set up paths for dataset storage
 dirname = os.getcwd()
 data_path = os.path.join(dirname, 'Dataset')
 
 
 class Statistics:
+    """
+    Class to calculate various statistics from a list of captured packets.
+    """
     def __init__(self, capture_list):
         self.capture_list = capture_list
         self.bitrate_normalized = None
@@ -21,21 +24,26 @@ class Statistics:
 
     @property
     def ip_amount(self):
+        # Calculate the unique number of IPs
         return self.calculate_ip_amount()
 
     @property
     def port_amount(self):
+        # Calculate the unique number of ports
         return self.calculate_port_amount()
 
     @property
     def bitrate(self):
+        # Calculate the bitrate of the captured data
         return self.calculate_bitrate()
 
     @property
     def total_time(self):
+        # Calculate the total time of the capture
         return self.calculate_total_time()
 
     def calculate_ip_amount(self):
+        """Calculate the number of unique IP addresses."""
         ip_list = []
         for data_packet in self.capture_list:
             if data_packet.ip_src is not None and data_packet.ip_dst is not None:
@@ -48,6 +56,7 @@ class Statistics:
         return ip_amount
 
     def calculate_port_amount(self):
+        """Calculate the number of unique ports."""
         port_list = []
         for data_packet in self.capture_list:
             if data_packet.port_src is not None and data_packet.port_dst is not None:
@@ -60,6 +69,7 @@ class Statistics:
         return port_amount
 
     def calculate_bitrate(self):
+        """Calculate the bitrate based on packet sizes and capture duration."""
         if not self.capture_list:
             return 0
         first_time = self.capture_list[0].time
@@ -79,6 +89,7 @@ class Statistics:
         return total_size / total_time if total_time != 0 else 0
 
     def calculate_total_time(self):
+        """Calculate the total time of packet capture sample."""
         first_time = self.capture_list[0].time
         last_time = self.capture_list[-1].time
         times = [first_time, last_time]
@@ -93,6 +104,9 @@ class Statistics:
 
 
 class DataCapture:
+    """
+    Class to manage a list of captured packets.
+    """
     def __init__(self, list_of_data_packet=None):
         self.is_processed = False
         if list_of_data_packet is None:
@@ -117,6 +131,7 @@ class DataCapture:
         return str("DataCapture<"+str(self.capture_list)+">")
 
     def add_packet(self, data_packet):
+        """Add a DataPacket object to the capture list."""
         try:
             if isinstance(data_packet, DataPacket):
                 self.capture_list.append(data_packet)
@@ -126,10 +141,12 @@ class DataCapture:
         except TypeError:
             logging.error(f'Object of type {type(data_packet).__name__} is not of type DataPacket')
 
-    def get_packet(self,index):
+    def get_packet(self, index):
+        """Retrieve a packet at a specific index."""
         return self.capture_list[index]
 
-    def show(self,index=None):
+    def show(self, index=None):
+        """Show the details of packets or statistics."""
         if index is None:
             for data_packet in self.capture_list:
                 print("\033[94mPACKET N°"+str(self.capture_list.index(data_packet))+" :")
@@ -140,8 +157,8 @@ class DataCapture:
             print("\033[94mPACKET N°" + str(index) + " :")
             self.capture_list[index].show()
 
-
     def print_field(self, field_name, field_value):
+        """Print field with color formatting for presence or absence of data."""
         present_color = '\033[94m'
         none_color = '\033[91m'
         reset_color = '\033[0m'
@@ -151,11 +168,12 @@ class DataCapture:
             print(f"{none_color}{field_name} : X")
 
     def show_stats(self):
+        """Display statistics for the captured data."""
         fields = [
             ("BITRATE (Bps)", self.stats.bitrate),
             ("AMOUNT OF IP", self.stats.ip_amount),
             ("AMOUNT OF PORT", self.stats.port_amount),
-            ("TOTAL TIME",self.stats.total_time)
+            ("TOTAL TIME", self.stats.total_time)
         ]
         print("\033[94mSTATISTICS : ")
         print("\033[94m---------------------------------------------------")
@@ -165,6 +183,7 @@ class DataCapture:
         print()
 
     def randomize_ips(self):
+        """Anonymize the IP addresses by randomizing the last three octets."""
         def generate_anonymized_ip(ip):
             ip_parts = ip.split('.')
             first_octet = ip_parts[0]
@@ -183,8 +202,11 @@ class DataCapture:
 
 
 class DataPacket:
+    """
+    Class representing a network data packet with its various attributes.
+    """
     def __init__(self, type=None, protocol=None, length=None, data=None, ip_src=None, ip_dst=None, p_src=None,
-                 p_dst=None,ack=None, flags=None, timestamp=None):
+                 p_dst=None, ack=None, flags=None, timestamp=None):
         self.type = type
         self.protocol = protocol
         self.length = length
@@ -201,6 +223,7 @@ class DataPacket:
         return "DataPacket< type : " + str(self.type) + " | " + str(self.length) + " bytes >"
 
     def print_field(self, field_name, field_value):
+        """Print a specific field of the packet."""
         present_color = '\033[94m'
         none_color = '\033[91m'
         reset_color = '\033[0m'
@@ -210,6 +233,7 @@ class DataPacket:
             print(f"{none_color}{field_name} : X")
 
     def show(self):
+        """Display details of the packet."""
         present_color = '\033[94m'
         reset_color = '\033[0m'
         fields = [
@@ -218,7 +242,7 @@ class DataPacket:
             ("LENGTH", self.length),
             ("PROTOCOL", self.protocol),
             ("ACK", self.ack),
-            ("FLAGS",self.flags),
+            ("FLAGS", self.flags),
             ("IP SOURCE", self.ip_src),
             ("IP DESTINATION", self.ip_dst),
             ("PORT SRC", self.port_src),
@@ -233,6 +257,9 @@ class DataPacket:
 
 
 class DataExtractor:
+    """
+    Class to extract data packets from a PCAP file and create DataPacket objects.
+    """
     def __init__(self, raw_capture=None):
         if raw_capture is not None:
             try:
@@ -260,9 +287,10 @@ class DataExtractor:
 
     @staticmethod
     def make_packet_obj(simple_packet, nbr):
+        """Create a DataPacket object from a raw packet."""
         if Ether in simple_packet:
             type = simple_packet[Ether].type
-        else :
+        else:
             type = None
         length = len(simple_packet)
         data = None
@@ -301,9 +329,10 @@ class DataExtractor:
         if simple_packet.haslayer('Raw'):
             data = simple_packet['Raw'].load
         return DataPacket(type=type, length=length, data=data, ip_src=ip_src, ip_dst=ip_dst, protocol=protocol,
-                          p_src=p_src, p_dst=p_dst,ack=ack,flags=flags,timestamp=timestamp)
+                          p_src=p_src, p_dst=p_dst, ack=ack, flags=flags, timestamp=timestamp)
 
     def extract_data(self, split_capture=None):
+        """Extract data from a raw capture (PCAP or a split PCAP) and return a DataCapture object."""
         data_capture = DataCapture()
         if split_capture is None:
             for packet in self.raw_capture:
@@ -314,6 +343,7 @@ class DataExtractor:
         return data_capture
 
     def split_raw_capture(self, packet_by_capture, max_nbr_of_samples=None):
+        """Split the raw capture into smaller sets of packets."""
         logging.info("Split capture in samples of " + str(packet_by_capture) + " packets...")
         split_cap = []
         packets = []

@@ -16,6 +16,9 @@ def init_weights(m):
 
 
 class Trainer:
+    """
+    Manages the training, validation, and testing of the MeanSharkNet.
+    """
     def __init__(self, mean_shark_dataset):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         logging.info('Using device: {}'.format(device))

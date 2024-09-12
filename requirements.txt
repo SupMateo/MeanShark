@@ -6,3 +6,4 @@ logging
 numpy
 torch
 scikit-learn
+matplotlib

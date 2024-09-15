@@ -231,7 +231,7 @@ class MeanSharkFramework:
         self.root.after(100, lambda: self.terminal_input.focus())
         self.root.mainloop()
 
-    def post_mortem_analyze(self,event):
+    def post_mortem_analyze(self):
         """Post-Mortem analysis of a PCAP file"""
         file_path = filedialog.askopenfilename(initialdir=os.getcwd(), title="Select a PCAP file",
                                                filetypes=[("PCAPNG files", "*.pcapng"), ("PCAP files", "*.pcap"),

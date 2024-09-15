@@ -199,7 +199,7 @@ class MeanSharkFramework:
                     self.info.configure(state=tk.DISABLED)
             print(f"Packet selected: {self.packet_selected}")
 
-    def on_launch_switch(self):
+    def on_launch_switch(self,event):
         """Toggles live capture on or off based on the switch state."""
         state = self.launch_switch.get()
         if state == 1:
@@ -231,7 +231,7 @@ class MeanSharkFramework:
         self.root.after(100, lambda: self.terminal_input.focus())
         self.root.mainloop()
 
-    def post_mortem_analyze(self):
+    def post_mortem_analyze(self,event):
         """Post-Mortem analysis of a PCAP file"""
         file_path = filedialog.askopenfilename(initialdir=os.getcwd(), title="Select a PCAP file",
                                                filetypes=[("PCAPNG files", "*.pcapng"), ("PCAP files", "*.pcap"),
@@ -261,7 +261,7 @@ class MeanSharkFramework:
         else:
             print("No file selected. Post-mortem analysis aborted.")
 
-    def execute_command(self):
+    def execute_command(self,event):
         """Executes terminal commands entered by the user."""
         command = self.terminal_input.get().strip()
         command_parser = command.split(" ")
